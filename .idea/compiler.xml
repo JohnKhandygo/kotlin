@@ -18,6 +18,22 @@
       <entry name="!?*.kt" />
       <entry name="!?*.clj" />
     </wildcardResourcePatterns>
+    <annotationProcessing>
+      <profile default="true" name="Default" enabled="true" />
+      <profile name="cycles">
+        <module name="annotation-collector" />
+        <module name="backend" />
+        <module name="backend.jvm" />
+        <module name="builtins-serializer" />
+        <module name="cli" />
+        <module name="descriptors" />
+        <module name="deserialization" />
+        <module name="frontend" />
+        <module name="js.inliner" />
+        <module name="js.translator" />
+        <module name="plugin-api" />
+      </profile>
+    </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="android-studio" target="1.8" />
       <module name="idea" target="1.8" />
