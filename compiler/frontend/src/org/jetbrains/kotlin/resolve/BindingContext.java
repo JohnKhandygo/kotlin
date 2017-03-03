@@ -50,6 +50,8 @@ import org.jetbrains.kotlin.util.slicedMap.*;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static org.jetbrains.kotlin.util.slicedMap.RewritePolicy.DO_NOTHING;
 
@@ -257,6 +259,9 @@ public interface BindingContext {
             new BasicWritableSlice<FqNameUnsafe, ClassDescriptor>(DO_NOTHING, true);
     WritableSlice<KtFile, PackageFragmentDescriptor> FILE_TO_PACKAGE_FRAGMENT = Slices.createSimpleSlice();
     WritableSlice<FqName, Collection<KtFile>> PACKAGE_TO_FILES = Slices.createSimpleSlice();
+
+    WritableSlice<PsiElement, ClassDescriptor> TYPECLASS = Slices.createSimpleSlice();
+    WritableSlice<ClassifierDescriptor, Map<List<KotlinType>, ClassDescriptor>> TYPECLASS_IMPLEMENTATIONS = Slices.createSimpleSlice();
 
     @SuppressWarnings("UnusedDeclaration")
     @Deprecated // This field is needed only for the side effects of its initializer

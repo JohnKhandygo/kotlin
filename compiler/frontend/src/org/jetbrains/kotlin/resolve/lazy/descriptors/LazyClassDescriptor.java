@@ -19,6 +19,7 @@ package org.jetbrains.kotlin.resolve.lazy.descriptors;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiNameIdentifierOwner;
 import kotlin.collections.CollectionsKt;
@@ -34,6 +35,7 @@ import org.jetbrains.kotlin.descriptors.impl.ClassDescriptorBase;
 import org.jetbrains.kotlin.descriptors.impl.FunctionDescriptorImpl;
 import org.jetbrains.kotlin.incremental.components.NoLookupLocation;
 import org.jetbrains.kotlin.lexer.KtTokens;
+import org.jetbrains.kotlin.name.FqName;
 import org.jetbrains.kotlin.name.Name;
 import org.jetbrains.kotlin.psi.*;
 import org.jetbrains.kotlin.psi.psiUtil.KtPsiUtilKt;
@@ -56,24 +58,23 @@ import org.jetbrains.kotlin.storage.MemoizedFunctionToNotNull;
 import org.jetbrains.kotlin.storage.NotNullLazyValue;
 import org.jetbrains.kotlin.storage.NullableLazyValue;
 import org.jetbrains.kotlin.storage.StorageManager;
-import org.jetbrains.kotlin.types.AbstractClassTypeConstructor;
-import org.jetbrains.kotlin.types.KotlinType;
-import org.jetbrains.kotlin.types.TypeConstructor;
-import org.jetbrains.kotlin.types.TypeUtils;
+import org.jetbrains.kotlin.types.*;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
+import static java.lang.String.format;
 import static kotlin.collections.CollectionsKt.firstOrNull;
 import static org.jetbrains.kotlin.descriptors.Visibilities.PUBLIC;
 import static org.jetbrains.kotlin.diagnostics.Errors.CYCLIC_INHERITANCE_HIERARCHY;
 import static org.jetbrains.kotlin.diagnostics.Errors.TYPE_PARAMETERS_IN_ENUM;
 import static org.jetbrains.kotlin.resolve.BindingContext.TYPE;
+import static org.jetbrains.kotlin.resolve.BindingContext.TYPECLASS_IMPLEMENTATIONS;
 import static org.jetbrains.kotlin.resolve.ModifiersChecker.*;
 
 public class LazyClassDescriptor extends ClassDescriptorBase implements ClassDescriptorWithResolutionScopes, LazyEntity {
+
+    private static final FqName TYPECLASS_ANNOTATION_FQ_NAME = new FqName("test.TypeClass");
+
     private static final Predicate<KotlinType> VALID_SUPERTYPE = new Predicate<KotlinType>() {
         @Override
         public boolean apply(KotlinType type) {
@@ -300,6 +301,63 @@ public class LazyClassDescriptor extends ClassDescriptorBase implements ClassDes
                 return DescriptorUtilsKt.computeSealedSubclasses(LazyClassDescriptor.this);
             }
         });
+
+        registerThisAsTypeClassIfApplicable();
+        registerThisAsTypeClassImplementationIfApplicable();
+    }
+
+    @NotNull
+    private static List<KotlinType> getTypeClassMemebers(KotlinType superTypeClass) {
+        List<KotlinType> members = Lists.newArrayList();
+        for (TypeProjection projection : superTypeClass.getArguments()) {
+            members.add(projection.getType());
+        }
+        return members;
+    }
+
+    private static boolean typeClass(@NotNull ClassifierDescriptor descriptor) {
+        return descriptor.getAnnotations().findAnnotation(TYPECLASS_ANNOTATION_FQ_NAME) != null;
+    }
+
+    //EK: TODO reimplement to save laziness of annotations.
+    private void registerThisAsTypeClassImplementationIfApplicable() {
+        //EK: TODO actually this should be done via method isTypeClass, but hierarchy of Class/Classifier Descriptor is too complicated.
+        for (KotlinType superTypeClass : findTypeClassesAmongSuperClasses()) {
+            ClassifierDescriptor typeClassDescriptor = superTypeClass.getConstructor().getDeclarationDescriptor();
+            Map<List<KotlinType>, ClassDescriptor> implementations = getRegisteredImplementationsOf(typeClassDescriptor);
+            List<KotlinType> members = getTypeClassMemebers(superTypeClass);
+            if (implementations.containsKey(members)) {
+                throw new RuntimeException(
+                        format("There is also exists an implementation for typeclass %s and members %s.",
+                               typeClassDescriptor, Arrays.toString(members.toArray())));
+            }
+            implementations.put(members, this);
+            this.c.getTrace().record(TYPECLASS_IMPLEMENTATIONS, typeClassDescriptor, implementations);
+        }
+    }
+
+    @NotNull
+    private Map<List<KotlinType>, ClassDescriptor> getRegisteredImplementationsOf(ClassifierDescriptor typeClassDescriptor) {
+        Map<List<KotlinType>, ClassDescriptor> implementations = this.c.getTrace().get(TYPECLASS_IMPLEMENTATIONS, typeClassDescriptor);
+        return implementations == null ? Maps.<List<KotlinType>, ClassDescriptor>newHashMap() : implementations;
+    }
+
+    @NotNull
+    private List<KotlinType> findTypeClassesAmongSuperClasses() {
+        List<KotlinType> typeClassesAmongSuperClasses = Lists.newArrayList();
+        for (KotlinType superType : computeSupertypes()) {
+            ClassifierDescriptor superTypeDescriptor = superType.getConstructor().getDeclarationDescriptor();
+            if (superTypeDescriptor != null && typeClass(superTypeDescriptor)) {
+                typeClassesAmongSuperClasses.add(superType);
+            }
+        }
+        return typeClassesAmongSuperClasses;
+    }
+
+    private void registerThisAsTypeClassIfApplicable() {
+        if (typeClass(this)) {
+            this.c.getTrace().record(BindingContext.TYPECLASS, classOrObject, this);
+        }
     }
 
     @NotNull
