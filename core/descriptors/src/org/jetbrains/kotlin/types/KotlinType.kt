@@ -22,6 +22,7 @@ import org.jetbrains.kotlin.renderer.DescriptorRenderer
 import org.jetbrains.kotlin.renderer.DescriptorRendererOptions
 import org.jetbrains.kotlin.resolve.scopes.MemberScope
 import org.jetbrains.kotlin.types.checker.StrictEqualityTypeChecker
+import org.jetbrains.kotlin.types.typeUtil.replaceAnnotations
 
 /**
  * [KotlinType] has only two direct subclasses: [WrappedType] and [UnwrappedType].
@@ -161,3 +162,55 @@ abstract class FlexibleType(val lowerBound: SimpleType, val upperBound: SimpleTy
     override fun toString(): String = DescriptorRenderer.DEBUG_TEXT.renderType(this)
 }
 
+class CompositeType(val types: List<KotlinType>, var index: Int = -1) : SimpleType() {
+
+    private val DEFAULT_TYPE: KotlinType = ErrorUtils.createErrorType("There is more then one type available in composite type.")
+
+    private fun <T> performForRepresentativeOrDefault(action: (KotlinType) -> T): T {
+        if (isValidRepresentativeType()) return action(types[index])
+        return action(DEFAULT_TYPE)
+    }
+
+    private fun <T> performForRepresentativeOrDefault(action: (KotlinType) -> T, defaultValue: T): T {
+        if (isValidRepresentativeType()) return action(types[index])
+        return defaultValue
+    }
+
+    private fun isValidRepresentativeType() = index > -1 && index < types.size
+
+    fun setRepresentativeType(index: Int) {
+        this.index = index
+    }
+
+    override val annotations: Annotations
+        get() = performForRepresentativeOrDefault(KotlinType::annotations)
+    override val constructor: TypeConstructor
+        get() = performForRepresentativeOrDefault(KotlinType::constructor)
+    override val arguments: List<TypeProjection>
+        get() = performForRepresentativeOrDefault(KotlinType::arguments)
+    override val isMarkedNullable: Boolean
+        get() = performForRepresentativeOrDefault(KotlinType::isMarkedNullable)
+    override val memberScope: MemberScope
+        get() = performForRepresentativeOrDefault(KotlinType::memberScope)
+    //EK: TODO does this misconception (non error type with error components) leads to smth bad?
+    override val isError: Boolean
+        get() = isValidRepresentativeType()
+
+    override fun replaceAnnotations(newAnnotations: Annotations): SimpleType {
+        //EK: "as SimpleType" should be safe prior to doc {@link SimpleType}
+        return performForRepresentativeOrDefault(
+                {
+                    representativeType -> representativeType.replaceAnnotations(newAnnotations).unwrap()
+                },
+                DEFAULT_TYPE) as SimpleType
+    }
+
+    override fun makeNullableAsSpecified(newNullability: Boolean): SimpleType {
+        //EK: "as SimpleType" should be safe prior to doc {@link SimpleType}
+        return performForRepresentativeOrDefault(
+                {
+                    representativeType -> representativeType.unwrap().makeNullableAsSpecified(newNullability)
+                },
+                DEFAULT_TYPE) as SimpleType
+    }
+}

@@ -80,6 +80,9 @@ class GenericCandidateResolver(
                 // Here we type check expecting an error type (DONT_CARE, substitution with substituteDontCare)
                 // and throw the results away
                 // We'll type check the arguments later, with the inferred types expected
+                if (TypeUtils.isTypeClass(valueParameterDescriptor.type)) {
+                    continue
+                }
                 addConstraintForValueArgument(
                         valueArgument, valueParameterDescriptor, substituteDontCare, builder, context, SHAPE_FUNCTION_ARGUMENTS
                 )

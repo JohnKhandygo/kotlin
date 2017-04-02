@@ -23,14 +23,14 @@ import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.typesApproximation.approximateCapturedTypes
 import java.util.*
 
-private class SubtypePathNode(val type: KotlinType, val previous: SubtypePathNode?)
+private class SubtypePathNode(val type: KotlinType, val previous: SubtypePathNode?, val level: Int)
 
 fun findCorrespondingSupertype(
         subtype: KotlinType, supertype: KotlinType,
         typeCheckingProcedureCallbacks: TypeCheckingProcedureCallbacks
 ): KotlinType? {
     val queue = ArrayDeque<SubtypePathNode>()
-    queue.add(SubtypePathNode(subtype, null))
+    queue.add(SubtypePathNode(subtype, null, 0))
 
     val supertypeConstructor = supertype.constructor
 
@@ -76,7 +76,7 @@ fun findCorrespondingSupertype(
         }
 
         for (immediateSupertype in constructor.supertypes) {
-            queue.add(SubtypePathNode(immediateSupertype, lastPathNode))
+            queue.add(SubtypePathNode(immediateSupertype, lastPathNode, lastPathNode.level + 1))
         }
     }
 
@@ -99,4 +99,150 @@ private fun TypeConstructor.debugInfo() = buildString {
 
         declarationDescriptor = declarationDescriptor.containingDeclaration
     }
+}
+
+fun filterSuperTypesAndOrder(
+        subtype: KotlinType,
+        supertypes: Set<KotlinType>
+): List<Set<KotlinType>> {
+    val queue = ArrayDeque<SubtypePathNode>()
+    queue.add(SubtypePathNode(subtype, null, 0))
+
+    val typesHierarchy = mutableListOf<MutableSet<KotlinType>>()
+    var lastResultLevel = -1
+    while (!queue.isEmpty()) {
+        val lastPathNode = queue.poll()
+        val currentSubtype = lastPathNode.type
+        val constructor = currentSubtype.constructor
+
+        for (supertype in supertypes) {
+            val supertypeConstructor = supertype.constructor
+            if (constructor == supertypeConstructor) {
+                val (substituted, shouldBeMarkedAsNullable) = scanPathUpAndSubstitute(lastPathNode)
+
+                val substitutedConstructor = substituted.constructor
+                if (substitutedConstructor != supertypeConstructor) {
+                    throw AssertionError("Type constructors should be equals!\n" +
+                                         "substitutedSuperType: ${substitutedConstructor.debugInfo()}, \n\n" +
+                                         "supertype: ${supertypeConstructor.debugInfo()} \n")
+                }
+
+                val resultType = TypeUtils.makeNullableAsSpecified(substituted, shouldBeMarkedAsNullable)
+                if (lastPathNode.level > lastResultLevel) {
+                    typesHierarchy.add(mutableSetOf(resultType))
+                    lastResultLevel = lastPathNode.level
+                }
+                if (lastPathNode.level == lastResultLevel) {
+                    typesHierarchy.last().add(resultType)
+                }
+            }
+        }
+
+        for (immediateSupertype in constructor.supertypes) {
+            queue.add(SubtypePathNode(immediateSupertype, lastPathNode, lastPathNode.level + 1))
+        }
+    }
+
+    return typesHierarchy
+}
+
+fun filterSubTypesAndOrder(
+        subtypes: Set<KotlinType>,
+        supertype: KotlinType
+): List<Set<KotlinType>> {
+    val queue = ArrayDeque<SubtypePathNode>()
+    for (subtype in subtypes) {
+        queue.add(SubtypePathNode(subtype, null, 0))
+    }
+
+    val typesHierarchy = mutableListOf<MutableSet<KotlinType>>()
+    var lastResultLevel = -1
+    while (!queue.isEmpty()) {
+        val lastPathNode = queue.poll()
+        val currentSubtype = lastPathNode.type
+        val constructor = currentSubtype.constructor
+
+        val supertypeConstructor = supertype.constructor
+        if (constructor == supertypeConstructor) {
+            val (substituted, shouldBeMarkedAsNullable) = scanPathUpAndSubstitute(lastPathNode)
+
+            val substitutedConstructor = substituted.constructor
+            if (substitutedConstructor != supertypeConstructor) {
+                throw AssertionError("Type constructors should be equals!\n" +
+                                     "substitutedSuperType: ${substitutedConstructor.debugInfo()}, \n\n" +
+                                     "supertype: ${supertypeConstructor.debugInfo()} \n")
+            }
+
+            var initialSubtype = lastPathNode.type
+            var currentPathNode = lastPathNode.previous
+            while (currentPathNode != null) {
+                initialSubtype = currentPathNode.type
+                currentPathNode = currentPathNode.previous
+            }
+            //EK: TODO investigate nullability on this
+            val resultType = TypeUtils.makeNullableAsSpecified(initialSubtype, shouldBeMarkedAsNullable)
+            if (lastPathNode.level > lastResultLevel) {
+                typesHierarchy.add(mutableSetOf(resultType))
+                lastResultLevel = lastPathNode.level
+            }
+            if (lastPathNode.level == lastResultLevel) {
+                typesHierarchy.last().add(resultType)
+            }
+        }
+
+        for (immediateSupertype in constructor.supertypes) {
+            queue.add(SubtypePathNode(immediateSupertype, lastPathNode, lastPathNode.level + 1))
+        }
+    }
+
+    return typesHierarchy
+}
+
+fun filterEqualTypes(
+        type: KotlinType,
+        toChooseFrom: Set<KotlinType>
+) : Set<KotlinType> {
+    val equalTypes = mutableSetOf<KotlinType>()
+    val constructor = type.constructor
+    for (supertype in toChooseFrom) {
+        val supertypeConstructor = supertype.constructor
+        if (constructor == supertypeConstructor) {
+            val substitutedConstructor = type.constructor
+            if (substitutedConstructor != supertypeConstructor) {
+                throw AssertionError("Type constructors should be equals!\n" +
+                                     "substitutedSuperType: ${substitutedConstructor.debugInfo()}, \n\n" +
+                                     "supertype: ${supertypeConstructor.debugInfo()} \n")
+            }
+            equalTypes.add(type)
+        }
+    }
+
+    return equalTypes
+}
+
+private fun scanPathUpAndSubstitute(lastPathNode: SubtypePathNode): Pair<KotlinType, Boolean> {
+    var substituted = lastPathNode.type
+    var isAnyMarkedNullable = substituted.isMarkedNullable
+
+    var currentPathNode = lastPathNode.previous
+
+    while (currentPathNode != null) {
+        val currentType = currentPathNode.type
+        if (currentType.arguments.any { it.projectionKind != Variance.INVARIANT }) {
+            substituted = TypeConstructorSubstitution.create(currentType)
+                    .wrapWithCapturingSubstitution().buildSubstitutor()
+                    .safeSubstitute(substituted, Variance.INVARIANT)
+                    .approximate()
+        }
+        else {
+            substituted = TypeConstructorSubstitution.create(currentType)
+                    .buildSubstitutor()
+                    .safeSubstitute(substituted, Variance.INVARIANT)
+        }
+
+        isAnyMarkedNullable = isAnyMarkedNullable || currentType.isMarkedNullable
+
+        currentPathNode = currentPathNode.previous
+    }
+    return Pair(substituted, isAnyMarkedNullable)
 }

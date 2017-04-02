@@ -53,6 +53,7 @@ public class DescriptorUtils {
     private static final FqName SYNCHRONIZED = new FqName("kotlin.jvm.Synchronized");
     public static final FqName COROUTINES_PACKAGE_FQ_NAME = new FqName("kotlin.coroutines.experimental");
     public static final FqName CONTINUATION_INTERFACE_FQ_NAME = COROUTINES_PACKAGE_FQ_NAME.child(Name.identifier("Continuation"));
+    private static final FqName TYPECLASS_ANNOTATION_FQ_NAME = new FqName("test.TypeClass");
 
     private DescriptorUtils() {
     }
@@ -621,4 +622,11 @@ public class DescriptorUtils {
                : descriptor;
     }
 
+
+    public static boolean isTypeClass(ClassifierDescriptor descriptor) {
+        if (descriptor == null) {
+            return false;
+        }
+        return descriptor.getAnnotations().findAnnotation(TYPECLASS_ANNOTATION_FQ_NAME) != null;
+    }
 }

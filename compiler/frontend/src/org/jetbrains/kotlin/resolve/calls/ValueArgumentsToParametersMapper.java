@@ -25,14 +25,17 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.builtins.functions.FunctionInvokeDescriptor;
 import org.jetbrains.kotlin.descriptors.CallableDescriptor;
 import org.jetbrains.kotlin.descriptors.CallableMemberDescriptor;
+import org.jetbrains.kotlin.descriptors.ClassifierDescriptor;
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor;
 import org.jetbrains.kotlin.diagnostics.Diagnostic;
 import org.jetbrains.kotlin.name.Name;
 import org.jetbrains.kotlin.psi.*;
+import org.jetbrains.kotlin.resolve.DescriptorUtils;
 import org.jetbrains.kotlin.resolve.OverrideResolver;
 import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt;
 import org.jetbrains.kotlin.resolve.calls.model.*;
 import org.jetbrains.kotlin.resolve.calls.tasks.TracingStrategy;
+import org.jetbrains.kotlin.resolve.calls.util.CallMaker;
 import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt;
 
 import java.util.Iterator;
@@ -253,6 +256,20 @@ public class ValueArgumentsToParametersMapper {
             ProcessorState state = positionedOnly;
             boolean isArraySetMethod = call.getCallType() == Call.CallType.ARRAY_SET_METHOD;
             List<? extends ValueArgument> argumentsInParentheses = CallUtilKt.getValueArgumentsInParentheses(call);
+
+            if (!isArraySetMethod) {
+                //EK: TODO do it with caching or smth like this to avoid every-time-creation of objects.
+                KtExpression nullExpression = new KtPsiFactory(call.getCallElement().getProject()).createExpression("null");
+
+                for (ValueParameterDescriptor parameter : parameters) {
+                    ClassifierDescriptor parameterTypeDescriptor = parameter.getType().getConstructor().getDeclarationDescriptor();
+                    if (!DescriptorUtils.isTypeClass(parameterTypeDescriptor)) {
+                        break;
+                    }
+                    state = state.processPositionedArgument(CallMaker.makeValueArgument(nullExpression));
+                }
+            }
+
             for (Iterator<? extends ValueArgument> iterator = argumentsInParentheses.iterator(); iterator.hasNext(); ) {
                 ValueArgument valueArgument = iterator.next();
                 if (valueArgument.isNamed()) {
