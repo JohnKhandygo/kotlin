@@ -22,3 +22,7 @@ Extension receiver = NO_RECEIVER
 Value arguments mapping:
 
 SUCCESS  x : Double = 1.0
+
+Resolved value arguments mapping:
+
+SUCCESS  x : Double = 1.0

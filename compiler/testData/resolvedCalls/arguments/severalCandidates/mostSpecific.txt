@@ -21,3 +21,8 @@ Value arguments mapping:
 
 SUCCESS  a : A = A()
 SUCCESS  s : String = ""
+
+Resolved value arguments mapping:
+
+SUCCESS  a : A = A()
+SUCCESS  s : String = ""

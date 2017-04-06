@@ -127,7 +127,7 @@ fun filterSuperTypesAndOrder(
                                          "supertype: ${supertypeConstructor.debugInfo()} \n")
                 }
 
-                val resultType = TypeUtils.makeNullableAsSpecified(substituted, shouldBeMarkedAsNullable)
+                val resultType = TypeUtils.makeNullableAsSpecified(supertype, shouldBeMarkedAsNullable)
                 if (lastPathNode.level > lastResultLevel) {
                     typesHierarchy.add(mutableSetOf(resultType))
                     lastResultLevel = lastPathNode.level
@@ -204,19 +204,12 @@ fun filterEqualTypes(
 ) : Set<KotlinType> {
     val equalTypes = mutableSetOf<KotlinType>()
     val constructor = type.constructor
-    for (supertype in toChooseFrom) {
-        val supertypeConstructor = supertype.constructor
+    for (type in toChooseFrom) {
+        val supertypeConstructor = type.constructor
         if (constructor == supertypeConstructor) {
-            val substitutedConstructor = type.constructor
-            if (substitutedConstructor != supertypeConstructor) {
-                throw AssertionError("Type constructors should be equals!\n" +
-                                     "substitutedSuperType: ${substitutedConstructor.debugInfo()}, \n\n" +
-                                     "supertype: ${supertypeConstructor.debugInfo()} \n")
-            }
             equalTypes.add(type)
         }
     }
-
     return equalTypes
 }
 

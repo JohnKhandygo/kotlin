@@ -20,3 +20,8 @@ Value arguments mapping:
 
 SUCCESS  t : Any = 11
 SUCCESS  l : List<Any> = ls
+
+Resolved value arguments mapping:
+
+SUCCESS  t : Any = 11
+SUCCESS  l : List<Any> = ls

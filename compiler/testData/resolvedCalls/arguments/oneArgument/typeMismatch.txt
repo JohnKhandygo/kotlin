@@ -18,3 +18,7 @@ Extension receiver = NO_RECEIVER
 Value arguments mapping:
 
 TYPE_MISMATCH  a : A = ""
+
+Resolved value arguments mapping:
+
+TYPE_MISMATCH  a : A = ""

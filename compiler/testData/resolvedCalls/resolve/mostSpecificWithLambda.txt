@@ -19,3 +19,7 @@ Extension receiver = NO_RECEIVER
 Value arguments mapping:
 
 SUCCESS  f : () -> Unit = { }
+
+Resolved value arguments mapping:
+
+SUCCESS  f : () -> Unit = { }

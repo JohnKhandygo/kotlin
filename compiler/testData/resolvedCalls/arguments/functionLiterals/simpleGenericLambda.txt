@@ -17,3 +17,7 @@ Extension receiver = NO_RECEIVER
 Value arguments mapping:
 
 SUCCESS  f : (Int) -> String = { x: Int -> "$x"}
+
+Resolved value arguments mapping:
+
+SUCCESS  f : (Int) -> String = { x: Int -> "$x"}

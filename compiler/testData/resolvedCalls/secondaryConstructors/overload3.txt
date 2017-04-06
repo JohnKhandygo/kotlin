@@ -23,3 +23,8 @@ Value arguments mapping:
 
 SUCCESS  x : Int = 1
 SUCCESS  y : String = "abc"
+
+Resolved value arguments mapping:
+
+SUCCESS  x : Int = 1
+SUCCESS  y : String = "abc"

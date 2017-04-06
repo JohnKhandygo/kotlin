@@ -21,3 +21,7 @@ Extension receiver = NO_RECEIVER
 Value arguments mapping:
 
 MATCH_MODULO_UNINFERRED_TYPES  t : ??? = someList()
+
+Resolved value arguments mapping:
+
+MATCH_MODULO_UNINFERRED_TYPES  t : ??? = someList()

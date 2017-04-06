@@ -1,0 +1,73 @@
+package test
+
+@Target(AnnotationTarget.CLASS)
+annotation class TypeClass
+
+open class A1
+open class A2: A1()
+open class A3: A2()
+open class A4: A3()
+open class A5: A4()
+
+@TypeClass
+interface TC<out T> {
+    fun doStuff(): T
+}
+
+object A4Member : TC<A4> {
+    override fun doStuff(): A4 = A4()
+}
+
+object A5Member : TC<A5> {
+    override fun doStuff(): A5 = A5()
+}
+
+fun <T> doStuff(dictionary: TC<T>): T = dictionary.doStuff()
+
+fun main() {
+    <caret>doStuff<A2>()
+    <caret>doStuff<A3>()
+    <caret>doStuff<A5>()
+}
+
+
+Resolved call:
+
+Candidate descriptor: fun <T> doStuff(dictionary: TC<T>): T defined in test
+Resulting descriptor: fun <T> doStuff(dictionary: TC<A2>): A2 defined in test
+
+Explicit receiver kind = NO_EXPLICIT_RECEIVER
+Dispatch receiver = NO_RECEIVER
+Extension receiver = NO_RECEIVER
+
+Resolved value arguments mapping:
+
+SUCCESS  dictionary : TC<A2> = test.A4Member
+
+
+Resolved call:
+
+Candidate descriptor: fun <T> doStuff(dictionary: TC<T>): T defined in test
+Resulting descriptor: fun <T> doStuff(dictionary: TC<A3>): A3 defined in test
+
+Explicit receiver kind = NO_EXPLICIT_RECEIVER
+Dispatch receiver = NO_RECEIVER
+Extension receiver = NO_RECEIVER
+
+Resolved value arguments mapping:
+
+SUCCESS  dictionary : TC<A3> = test.A4Member
+
+
+Resolved call:
+
+Candidate descriptor: fun <T> doStuff(dictionary: TC<T>): T defined in test
+Resulting descriptor: fun <T> doStuff(dictionary: TC<A5>): A5 defined in test
+
+Explicit receiver kind = NO_EXPLICIT_RECEIVER
+Dispatch receiver = NO_RECEIVER
+Extension receiver = NO_RECEIVER
+
+Resolved value arguments mapping:
+
+SUCCESS  dictionary : TC<A5> = test.A5Member

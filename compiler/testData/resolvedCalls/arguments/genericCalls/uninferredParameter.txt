@@ -20,3 +20,8 @@ Value arguments mapping:
 
 MATCH_MODULO_UNINFERRED_TYPES  t : ??? = 11
 MATCH_MODULO_UNINFERRED_TYPES  l : MutableList<???> = ls
+
+Resolved value arguments mapping:
+
+MATCH_MODULO_UNINFERRED_TYPES  t : ??? = 11
+MATCH_MODULO_UNINFERRED_TYPES  l : MutableList<???> = ls

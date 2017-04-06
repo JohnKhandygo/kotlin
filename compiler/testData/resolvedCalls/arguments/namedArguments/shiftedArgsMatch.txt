@@ -20,3 +20,8 @@ Value arguments mapping:
 
 SUCCESS  b : B = B()
 SUCCESS  a : A = A()
+
+Resolved value arguments mapping:
+
+SUCCESS  a : A = A()
+SUCCESS  b : B = B()

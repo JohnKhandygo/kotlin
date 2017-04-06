@@ -18,3 +18,7 @@ Extension receiver = NO_RECEIVER
 Value arguments mapping:
 
 ARGUMENT_HAS_NO_TYPE  a : A = b
+
+Resolved value arguments mapping:
+
+ARGUMENT_HAS_NO_TYPE  a : A = b

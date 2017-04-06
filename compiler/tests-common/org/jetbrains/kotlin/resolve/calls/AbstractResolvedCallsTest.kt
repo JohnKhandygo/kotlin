@@ -154,5 +154,22 @@ internal fun ResolvedCall<*>.renderToText(): String {
                 appendln("$argumentMappingText $argumentText")
             }
         }
+
+        val valueArgumentsByIndex = valueArgumentsByIndex ?: emptyList()
+        if (!valueArgumentsByIndex.isEmpty()) {
+            appendln()
+            appendln("Resolved value arguments mapping:")
+            appendln()
+
+            for (resolvedValueArgument in valueArgumentsByIndex) {
+                val arguments = resolvedValueArgument.arguments
+                for (argument in arguments) {
+                    val argumentText = argument!!.getText()
+                    val argumentMappingText = getArgumentMapping(argument).getText()
+
+                    appendln("$argumentMappingText $argumentText")
+                }
+            }
+        }
     }
 }

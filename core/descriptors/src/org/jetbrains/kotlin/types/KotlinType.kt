@@ -23,6 +23,7 @@ import org.jetbrains.kotlin.renderer.DescriptorRendererOptions
 import org.jetbrains.kotlin.resolve.scopes.MemberScope
 import org.jetbrains.kotlin.types.checker.StrictEqualityTypeChecker
 import org.jetbrains.kotlin.types.typeUtil.replaceAnnotations
+import org.jetbrains.kotlin.utils.toReadOnlyList
 
 /**
  * [KotlinType] has only two direct subclasses: [WrappedType] and [UnwrappedType].
@@ -171,9 +172,9 @@ class CompositeType(val types: List<KotlinType>, var index: Int = -1) : SimpleTy
         return action(DEFAULT_TYPE)
     }
 
-    private fun <T> performForRepresentativeOrDefault(action: (KotlinType) -> T, defaultValue: T): T {
-        if (isValidRepresentativeType()) return action(types[index])
-        return defaultValue
+    private fun mapRepresentativeIfAny(action: (KotlinType) -> KotlinType): CompositeType {
+        val mapped = types.withIndex().map { (i, v) -> if (i == index) action(v) else v }
+        return CompositeType(mapped, index)
     }
 
     private fun isValidRepresentativeType() = index > -1 && index < types.size
@@ -197,20 +198,10 @@ class CompositeType(val types: List<KotlinType>, var index: Int = -1) : SimpleTy
         get() = isValidRepresentativeType()
 
     override fun replaceAnnotations(newAnnotations: Annotations): SimpleType {
-        //EK: "as SimpleType" should be safe prior to doc {@link SimpleType}
-        return performForRepresentativeOrDefault(
-                {
-                    representativeType -> representativeType.replaceAnnotations(newAnnotations).unwrap()
-                },
-                DEFAULT_TYPE) as SimpleType
+        return mapRepresentativeIfAny({ representativeType -> representativeType.replaceAnnotations(newAnnotations).unwrap() })
     }
 
     override fun makeNullableAsSpecified(newNullability: Boolean): SimpleType {
-        //EK: "as SimpleType" should be safe prior to doc {@link SimpleType}
-        return performForRepresentativeOrDefault(
-                {
-                    representativeType -> representativeType.unwrap().makeNullableAsSpecified(newNullability)
-                },
-                DEFAULT_TYPE) as SimpleType
+        return mapRepresentativeIfAny({ representativeType -> representativeType.unwrap().makeNullableAsSpecified(newNullability)})
     }
 }

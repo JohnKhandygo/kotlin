@@ -276,7 +276,10 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
 
         @SuppressWarnings("unchecked")
         List<Set<KotlinType>> zeroApproximationSolution = Lists.<Set<KotlinType>>newArrayList(knownMembers);
-        Set<KotlinType> solutions = findNearestSolution(substituted.getType().getArguments(), zeroApproximationSolution, 0);
+        Set<KotlinType> solutions = findNearestSolution(substituted.getType().getArguments(),
+                                                        typeclassDeclaration.getTypeConstructor().getParameters(),
+                                                        zeroApproximationSolution,
+                                                        0);
         if (solutions.isEmpty()) {
             throw new RuntimeException("Found no solutions for type class resolution.");
         }
@@ -294,15 +297,13 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
         }
         KtExpression oldValueExpression = oldValueArgument.getArgumentExpression();
         KtExpression newArgumentExpression = new KtPsiFactory(oldValueExpression.getProject())
-                .createExpression(
-                        typeclassDeclaration.getName().getIdentifier() +
-                        "." +
-                        implementationDescriptor.getName().getIdentifier());
+                .createExpression(DescriptorUtils.getFqName(implementationDescriptor).asString());
         return CallMaker.makeValueArgument(newArgumentExpression);
     }
 
     private static Set<KotlinType> findNearestSolution(
             List<TypeProjection> typeProjections,
+            List<TypeParameterDescriptor> typeParameters,
             List<Set<KotlinType>> orderedSolutions,
             int i
     ) {
@@ -312,14 +313,19 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
                     ((CompositeType) type).setRepresentativeType(i);
                 }
             }
-            List<Set<KotlinType>> thisLevelOrderedSolutions = findBestSolutionsForProjection(solution, typeProjections.get(i));
+            List<Set<KotlinType>> thisLevelOrderedSolutions = findBestSolutionsForProjection(solution,
+                                                                                             typeProjections.get(i),
+                                                                                             typeParameters.get(i));
             if (thisLevelOrderedSolutions.isEmpty()) {
                 continue;
             }
             if (i == typeProjections.size() - 1) {
                 return thisLevelOrderedSolutions.get(0);
             }
-            Set<KotlinType> bestFittingTypes = findNearestSolution(typeProjections, thisLevelOrderedSolutions, i + 1);
+            Set<KotlinType> bestFittingTypes = findNearestSolution(typeProjections,
+                                                                   typeParameters,
+                                                                   thisLevelOrderedSolutions,
+                                                                   i + 1);
             if (!bestFittingTypes.isEmpty()) {
                 return bestFittingTypes;
             }
@@ -329,10 +335,14 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
 
     @NotNull
     private static List<Set<KotlinType>> findBestSolutionsForProjection(
-            Set<KotlinType> bestFittingSoFarTypes, 
-            TypeProjection projection
+            Set<KotlinType> bestFittingSoFarTypes,
+            TypeProjection projection,
+            TypeParameterDescriptor typeParameterDescriptor
     ) {
-        switch (projection.getProjectionKind()) {
+        Variance declaredVariance = typeParameterDescriptor.getVariance();
+        Variance usedVariance = projection.getProjectionKind();
+        Variance resolutionVariance = getResolutionVarianve(declaredVariance, usedVariance);
+        switch (resolutionVariance) {
             case IN_VARIANCE:
                 return UtilsKt.filterSuperTypesAndOrder(projection.getType(), bestFittingSoFarTypes);
             case INVARIANT:
@@ -344,6 +354,25 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
             default:
                 throw new RuntimeException("Unexpected variance type " + projection.getProjectionKind() + ".");
                 
+        }
+    }
+
+    private static Variance getResolutionVarianve(Variance declaredVariance, Variance usedVariance) {
+        switch (usedVariance) {
+            case IN_VARIANCE:
+                if(declaredVariance.getAllowsInPosition()) {
+                    return usedVariance;
+                }
+                throw new RuntimeException("Cannot use variance " + usedVariance + " when declared is " + declaredVariance + ".");
+            case INVARIANT:
+                return declaredVariance;
+            case OUT_VARIANCE:
+                if(declaredVariance.getAllowsOutPosition()) {
+                    return usedVariance;
+                }
+                throw new RuntimeException("Cannot use variance " + usedVariance + " when declared is " + declaredVariance + ".");
+            default:
+                throw new RuntimeException("Unknown used variance " + usedVariance + ".");
         }
     }
 
