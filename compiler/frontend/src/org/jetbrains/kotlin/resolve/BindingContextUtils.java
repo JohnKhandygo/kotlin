@@ -17,6 +17,7 @@
 package org.jetbrains.kotlin.resolve;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.intellij.openapi.util.Pair;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
@@ -33,13 +34,18 @@ import org.jetbrains.kotlin.resolve.calls.smartcasts.DataFlowInfoFactory;
 import org.jetbrains.kotlin.resolve.calls.tower.TowerLevelsKt;
 import org.jetbrains.kotlin.resolve.diagnostics.MutableDiagnosticsWithSuppression;
 import org.jetbrains.kotlin.types.KotlinType;
+import org.jetbrains.kotlin.types.TypeProjection;
 import org.jetbrains.kotlin.types.TypeUtils;
 import org.jetbrains.kotlin.types.expressions.KotlinTypeInfo;
 import org.jetbrains.kotlin.types.expressions.typeInfoFactory.TypeInfoFactoryKt;
 import org.jetbrains.kotlin.util.slicedMap.*;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
+import static java.lang.String.format;
 import static org.jetbrains.kotlin.diagnostics.Errors.AMBIGUOUS_LABEL;
 import static org.jetbrains.kotlin.resolve.BindingContext.*;
 
@@ -252,5 +258,28 @@ public class BindingContextUtils {
             }
         }
 
+    }
+
+    public static void recordTypeClassImplementation(
+            @NotNull BindingTrace bindingTrace,
+            @NotNull KotlinType typeClassType,
+            @NotNull ClassDescriptor implementationClassDescriptor
+    ) {
+        ClassifierDescriptor typeClassDescriptor = typeClassType.getConstructor().getDeclarationDescriptor();
+        Map<List<KotlinType>, ClassDescriptor> storedImplementations = bindingTrace.get(TYPECLASS_IMPLEMENTATIONS, typeClassDescriptor);
+        Map<List<KotlinType>, ClassDescriptor> knownImplementations = storedImplementations == null ?
+                                                                      Maps.<List<KotlinType>, ClassDescriptor>newHashMap() :
+                                                                      storedImplementations;
+        List<KotlinType> members = Lists.newArrayList();
+        for (TypeProjection projection : typeClassType.getArguments()) {
+            members.add(projection.getType());
+        }
+        if (knownImplementations.containsKey(members)) {
+            throw new RuntimeException(
+                    format("There is also exists an implementation for typeclass %s and members %s.",
+                           typeClassDescriptor, Arrays.toString(members.toArray())));
+        }
+        knownImplementations.put(members, implementationClassDescriptor);
+        bindingTrace.record(TYPECLASS_IMPLEMENTATIONS, typeClassDescriptor, knownImplementations);
     }
 }

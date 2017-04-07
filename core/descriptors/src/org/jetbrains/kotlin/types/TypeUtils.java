@@ -483,4 +483,9 @@ public class TypeUtils {
         ClassifierDescriptor descriptor = type.getConstructor().getDeclarationDescriptor();
         return DescriptorUtils.isTypeClass(descriptor);
     }
+
+    public static boolean isTypeClassMember(KotlinType type) {
+        ClassifierDescriptor descriptor = type.getConstructor().getDeclarationDescriptor();
+        return DescriptorUtils.isTypeClassMember(descriptor);
+    }
 }

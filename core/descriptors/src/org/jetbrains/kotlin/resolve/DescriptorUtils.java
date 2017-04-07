@@ -54,6 +54,7 @@ public class DescriptorUtils {
     public static final FqName COROUTINES_PACKAGE_FQ_NAME = new FqName("kotlin.coroutines.experimental");
     public static final FqName CONTINUATION_INTERFACE_FQ_NAME = COROUTINES_PACKAGE_FQ_NAME.child(Name.identifier("Continuation"));
     private static final FqName TYPECLASS_ANNOTATION_FQ_NAME = new FqName("test.TypeClass");
+    private static final FqName TYPECLASS_MEMBER_ANNOTATION_FQ_NAME = new FqName("test.TypeClassMember");
 
     private DescriptorUtils() {
     }
@@ -628,5 +629,15 @@ public class DescriptorUtils {
             return false;
         }
         return descriptor.getAnnotations().findAnnotation(TYPECLASS_ANNOTATION_FQ_NAME) != null;
+    }
+
+    public static boolean isTypeClassMember(ClassifierDescriptor descriptor) {
+        if (descriptor == null) {
+            return false;
+        }
+        if (isAnnotationClass(descriptor)) {
+            return false;
+        }
+        return descriptor.getAnnotations().findAnnotation(TYPECLASS_MEMBER_ANNOTATION_FQ_NAME) != null;
     }
 }

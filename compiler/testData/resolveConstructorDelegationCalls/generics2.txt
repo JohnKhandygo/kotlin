@@ -19,3 +19,8 @@ Value arguments mapping:
 
 SUCCESS  x : T1 = x
 SUCCESS  y : Int = 1
+
+Resolved value arguments mapping:
+
+SUCCESS  x : T1 = x
+SUCCESS  y : Int = 1

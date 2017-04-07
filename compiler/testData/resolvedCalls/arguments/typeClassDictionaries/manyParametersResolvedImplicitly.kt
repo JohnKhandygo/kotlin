@@ -3,11 +3,15 @@ package test
 @Target(AnnotationTarget.CLASS)
 annotation class TypeClass
 
+@Target(AnnotationTarget.CLASS)
+annotation class TypeClassMember
+
 @TypeClass
 interface TC<T1, T2> {
     fun doStuff(t1: T1, t2: T2, t3: Map<T1, T2>)
 }
 
+@TypeClassMember
 object TCMember : TC<Double, List<Any?>> {
     override fun doStuff(t1: Double, t2: List<Any?>, t3: Map<Double, List<Any?>>) {}
 }

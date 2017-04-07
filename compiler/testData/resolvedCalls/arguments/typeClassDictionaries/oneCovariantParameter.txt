@@ -3,6 +3,9 @@ package test
 @Target(AnnotationTarget.CLASS)
 annotation class TypeClass
 
+@Target(AnnotationTarget.CLASS)
+annotation class TypeClassMember
+
 open class A1
 open class A2: A1()
 open class A3: A2()
@@ -14,10 +17,12 @@ interface TC<out T> {
     fun doStuff(): T
 }
 
+@TypeClassMember
 object A4Member : TC<A4> {
     override fun doStuff(): A4 = A4()
 }
 
+@TypeClassMember
 object A5Member : TC<A5> {
     override fun doStuff(): A5 = A5()
 }

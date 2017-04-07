@@ -16,3 +16,6 @@ Resulting descriptor: constructor B<T>(x: Int = ...) defined in B
 Explicit receiver kind = NO_EXPLICIT_RECEIVER
 Dispatch receiver = NO_RECEIVER
 Extension receiver = NO_RECEIVER
+
+Resolved value arguments mapping:
+

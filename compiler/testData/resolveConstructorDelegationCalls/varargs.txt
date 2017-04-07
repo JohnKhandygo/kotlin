@@ -21,3 +21,9 @@ Value arguments mapping:
 SUCCESS  x : IntArray = x
 SUCCESS  x : IntArray = intArrayOf(1, 2, 3)
 SUCCESS  x : IntArray = 4
+
+Resolved value arguments mapping:
+
+SUCCESS  x : IntArray = x
+SUCCESS  x : IntArray = intArrayOf(1, 2, 3)
+SUCCESS  x : IntArray = 4

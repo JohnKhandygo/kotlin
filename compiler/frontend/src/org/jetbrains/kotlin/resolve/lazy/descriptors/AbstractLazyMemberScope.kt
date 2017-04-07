@@ -22,7 +22,9 @@ import org.jetbrains.kotlin.incremental.components.LookupLocation
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.resolve.BindingContextUtils
 import org.jetbrains.kotlin.resolve.BindingTrace
+import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.lazy.LazyClassContext
 import org.jetbrains.kotlin.resolve.lazy.ResolveSession
 import org.jetbrains.kotlin.resolve.lazy.data.KtScriptInfo
@@ -32,6 +34,7 @@ import org.jetbrains.kotlin.resolve.scopes.LexicalScope
 import org.jetbrains.kotlin.resolve.scopes.MemberScopeImpl
 import org.jetbrains.kotlin.storage.MemoizedFunctionToNotNull
 import org.jetbrains.kotlin.storage.StorageManager
+import org.jetbrains.kotlin.types.TypeUtils
 import org.jetbrains.kotlin.utils.Printer
 import org.jetbrains.kotlin.utils.toReadOnlyList
 import java.util.*
@@ -57,7 +60,21 @@ protected constructor(
                 LazyScriptDescriptor(c as ResolveSession, thisDescriptor, name, it)
             else {
                 val isExternal = it.modifierList?.hasModifier(KtTokens.EXTERNAL_KEYWORD) ?: false
-                LazyClassDescriptor(c, thisDescriptor, name, it, isExternal)
+                val classDescriptor = LazyClassDescriptor(c, thisDescriptor, name, it, isExternal)
+                //EK: TODO consider reimplement to preserve laziness.
+                if (DescriptorUtils.isTypeClassMember(classDescriptor)) {
+                    var typeClassFound = false
+                    for (superType in classDescriptor.typeConstructor.getSupertypes()) {
+                        if (TypeUtils.isTypeClass(superType)) {
+                            typeClassFound = true
+                            BindingContextUtils.recordTypeClassImplementation(c.trace, superType, classDescriptor)
+                        }
+                    }
+                    if (!typeClassFound) {
+                        throw RuntimeException("Class " + name.identifier + " marked as type class member but do not extend any known type classes.")
+                    }
+                }
+                classDescriptor
             }
         }
         getNonDeclaredClasses(name, result)

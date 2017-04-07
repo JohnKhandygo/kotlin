@@ -23,3 +23,8 @@ Value arguments mapping:
 
 SUCCESS  x : T1 = x
 SUCCESS  s : String = ""
+
+Resolved value arguments mapping:
+
+SUCCESS  x : T1 = x
+SUCCESS  s : String = ""

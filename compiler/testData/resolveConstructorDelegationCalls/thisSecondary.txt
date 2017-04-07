@@ -16,3 +16,7 @@ Extension receiver = NO_RECEIVER
 Value arguments mapping:
 
 SUCCESS  x : Int = 1
+
+Resolved value arguments mapping:
+
+SUCCESS  x : Int = 1
