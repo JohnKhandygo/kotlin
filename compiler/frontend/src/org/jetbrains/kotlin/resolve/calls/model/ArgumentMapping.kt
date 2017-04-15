@@ -36,7 +36,9 @@ enum class ArgumentMatchStatus(val isError: Boolean = true) {
     // fun <T> foo(l: List<T>) {}; val l = foo(emptyList())
     MATCH_MODULO_UNINFERRED_TYPES(),
 
-    UNKNOWN()
+    UNKNOWN(),
+
+    TYPE_CLASS_DICTIONARY_FROM_OUTER()
 }
 
 interface ArgumentMatch : ArgumentMapping {

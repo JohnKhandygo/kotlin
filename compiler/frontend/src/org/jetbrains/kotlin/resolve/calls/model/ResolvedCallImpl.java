@@ -232,6 +232,10 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
                     throw new RuntimeException("Expecting old value for typeclass parameters has exactly one argument.");
                 }
                 ValueArgument oldValueArgument = oldValueArguments.get(0);
+                if (argumentToParameterMap.get(oldValueArgument).getStatus() == ArgumentMatchStatus.TYPE_CLASS_DICTIONARY_FROM_OUTER) {
+                    valueArguments.put(substitutedVersion, entry.getValue());
+                    continue ;
+                }
                 ValueArgument newValue = getTypeClassImplementationAsArgument(substitutedVersion,
                                                                               typeDeclaration,
                                                                               oldValueArgument);

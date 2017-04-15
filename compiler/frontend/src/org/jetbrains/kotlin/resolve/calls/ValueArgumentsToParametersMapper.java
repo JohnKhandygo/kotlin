@@ -20,28 +20,30 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.intellij.psi.impl.source.tree.LeafPsiElement;
 import kotlin.collections.CollectionsKt;
+import kotlin.jvm.functions.Function1;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.builtins.functions.FunctionInvokeDescriptor;
 import org.jetbrains.kotlin.descriptors.CallableDescriptor;
 import org.jetbrains.kotlin.descriptors.CallableMemberDescriptor;
-import org.jetbrains.kotlin.descriptors.ClassifierDescriptor;
+import org.jetbrains.kotlin.descriptors.DeclarationDescriptor;
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor;
 import org.jetbrains.kotlin.diagnostics.Diagnostic;
 import org.jetbrains.kotlin.name.Name;
 import org.jetbrains.kotlin.psi.*;
-import org.jetbrains.kotlin.resolve.DescriptorUtils;
+import org.jetbrains.kotlin.resolve.BindingContext;
 import org.jetbrains.kotlin.resolve.OverrideResolver;
 import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt;
 import org.jetbrains.kotlin.resolve.calls.model.*;
 import org.jetbrains.kotlin.resolve.calls.tasks.TracingStrategy;
 import org.jetbrains.kotlin.resolve.calls.util.CallMaker;
 import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt;
+import org.jetbrains.kotlin.resolve.scopes.DescriptorKindFilter;
+import org.jetbrains.kotlin.resolve.scopes.LexicalScope;
+import org.jetbrains.kotlin.types.KotlinType;
+import org.jetbrains.kotlin.types.TypeUtils;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.jetbrains.kotlin.diagnostics.Errors.*;
 import static org.jetbrains.kotlin.diagnostics.Errors.BadNamedArgumentsTarget.INVOKE_ON_FUNCTION_TYPE;
@@ -159,15 +161,30 @@ public class ValueArgumentsToParametersMapper {
             }
 
             @Override
+            public ProcessorState processPositionedArgumentFromOuterScope(@NotNull ValueArgument argument) {
+                processArgument(argument, nextValueParameter(), ArgumentMatchStatus.TYPE_CLASS_DICTIONARY_FROM_OUTER);
+                return positionedOnly;
+            }
+
+            @Override
             public ProcessorState processArraySetRHS(@NotNull ValueArgument argument) {
                 processArgument(argument, CollectionsKt.lastOrNull(parameters));
                 return positionedOnly;
             }
 
-            private void processArgument(@NotNull ValueArgument argument, @Nullable ValueParameterDescriptor parameter) {
+            private void processArgument(
+                    @NotNull ValueArgument argument,
+                    @Nullable ValueParameterDescriptor parameter) {
+                processArgument(argument, parameter, null);
+            }
+
+            private void processArgument(
+                    @NotNull ValueArgument argument,
+                    @Nullable ValueParameterDescriptor parameter,
+                    @Nullable ArgumentMatchStatus matchStatus) {
                 if (parameter != null) {
                     usedParameters.add(parameter);
-                    putVararg(parameter, argument);
+                    putVararg(parameter, argument, matchStatus);
                 }
                 else {
                     report(TOO_MANY_ARGUMENTS.on(argument.asElement(), candidateCall.getCandidateDescriptor()));
@@ -247,6 +264,11 @@ public class ValueArgumentsToParametersMapper {
             }
 
             @Override
+            public ProcessorState processPositionedArgumentFromOuterScope(@NotNull ValueArgument argument) {
+                throw new RuntimeException("It is not allowed to use dictionary as named parameter.");
+            }
+
+            @Override
             public ProcessorState processArraySetRHS(@NotNull ValueArgument argument) {
                 throw new IllegalStateException("Array set RHS cannot appear after a named argument syntactically: " + argument);
             }
@@ -258,15 +280,14 @@ public class ValueArgumentsToParametersMapper {
             List<? extends ValueArgument> argumentsInParentheses = CallUtilKt.getValueArgumentsInParentheses(call);
 
             if (!isArraySetMethod) {
-                //EK: TODO do it with caching or smth like this to avoid every-time-creation of objects.
-                KtExpression nullExpression = new KtPsiFactory(call.getCallElement().getProject()).createExpression("null");
-
                 for (ValueParameterDescriptor parameter : parameters) {
-                    ClassifierDescriptor parameterTypeDescriptor = parameter.getType().getConstructor().getDeclarationDescriptor();
-                    if (!DescriptorUtils.isTypeClass(parameterTypeDescriptor)) {
+                    KotlinType parameterType = parameter.getType();
+                    if (!TypeUtils.isTypeClass(parameterType)) {
                         break;
                     }
-                    state = state.processPositionedArgument(CallMaker.makeValueArgument(nullExpression));
+                    KtExpression valueArgumentExpression = valueArgumentExpressionFromOuterOrNullExpression(parameterType);
+                    state = state.processPositionedArgumentFromOuterScope(
+                            CallMaker.makeValueArgument(valueArgumentExpression));
                 }
             }
 
@@ -289,6 +310,45 @@ public class ValueArgumentsToParametersMapper {
 
             processFunctionLiteralArguments();
             reportUnmappedParameters();
+        }
+
+        @NotNull
+        private KtExpression valueArgumentExpressionFromOuterOrNullExpression(KotlinType givenType) {
+            KtExpression valueArgumentExpression = findVariableExpressionWithTypeFromOuter(givenType);
+            if (valueArgumentExpression == null) {
+                //EK: TODO do it with caching or smth like this to avoid every-time-creation of objects.
+                return new KtPsiFactory(call.getCallElement().getProject()).createExpression("null");
+            }
+            return valueArgumentExpression;
+        }
+
+        @Nullable
+        private KtExpression findVariableExpressionWithTypeFromOuter(KotlinType givenType) {
+            Collection<DeclarationDescriptor> descriptors = getAllDescriptorsFromOuter();
+            // EK: TODO multiple solutions?
+            for (DeclarationDescriptor contributedDescriptor : descriptors) {
+                if (contributedDescriptor instanceof ValueParameterDescriptor) {
+                    KotlinType contributedVariableType = ((ValueParameterDescriptor) contributedDescriptor).getType();
+                    if (contributedVariableType.getConstructor() == givenType.getConstructor()) {
+                        return new KtPsiFactory(call.getCallElement().getProject())
+                                .createExpression(contributedDescriptor.getName().getIdentifier());
+                    }
+                }
+            }
+            return null;
+        }
+
+        @NotNull
+        private Collection<DeclarationDescriptor> getAllDescriptorsFromOuter() {
+            LexicalScope calleeScope = candidateCall.getTrace().get(BindingContext.LEXICAL_SCOPE, call.getCalleeExpression());
+            return calleeScope.getContributedDescriptors(
+                    DescriptorKindFilter.ALL,
+                    new Function1<Name, Boolean>() {
+                        @Override
+                        public Boolean invoke(Name name) {
+                            return true;
+                        }
+                    });
         }
 
         private void processFunctionLiteralArguments() {
@@ -341,7 +401,16 @@ public class ValueArgumentsToParametersMapper {
             }
         }
 
-        private void putVararg(ValueParameterDescriptor valueParameterDescriptor, ValueArgument valueArgument) {
+        private void putVararg(
+                ValueParameterDescriptor valueParameterDescriptor,
+                ValueArgument valueArgument) {
+            putVararg(valueParameterDescriptor, valueArgument, null);
+        }
+
+        private void putVararg(
+                ValueParameterDescriptor valueParameterDescriptor,
+                ValueArgument valueArgument,
+                ArgumentMatchStatus matchStatus) {
             if (valueParameterDescriptor.getVarargElementType() != null) {
                 VarargValueArgument vararg = varargs.get(valueParameterDescriptor);
                 if (vararg == null) {
@@ -358,6 +427,9 @@ public class ValueArgumentsToParametersMapper {
                 }
                 ResolvedValueArgument argument = new ExpressionValueArgument(valueArgument);
                 candidateCall.recordValueArgument(valueParameterDescriptor, argument);
+                if (matchStatus != null) {
+                    candidateCall.recordArgumentMatchStatus(valueArgument, matchStatus);
+                }
             }
         }
 
@@ -373,6 +445,8 @@ public class ValueArgumentsToParametersMapper {
             ProcessorState processNamedArgument(@NotNull ValueArgument argument);
 
             ProcessorState processPositionedArgument(@NotNull ValueArgument argument);
+
+            ProcessorState processPositionedArgumentFromOuterScope(@NotNull ValueArgument argument);
 
             ProcessorState processArraySetRHS(@NotNull ValueArgument argument);
         }

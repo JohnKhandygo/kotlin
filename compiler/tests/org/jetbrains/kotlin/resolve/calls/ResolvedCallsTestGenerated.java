@@ -315,6 +315,18 @@ public class ResolvedCallsTestGenerated extends AbstractResolvedCallsTest {
                 String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/allVarianceParameters.kt");
                 doTest(fileName);
             }
+
+            @TestMetadata("dictionaryParameterPassesImplicitly.kt")
+            public void testDictionaryParameterPassesImplicitly() throws Exception {
+                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/dictionaryParameterPassesImplicitly.kt");
+                doTest(fileName);
+            }
+
+            @TestMetadata("dictionaryParameterPassesFromOuter.kt")
+            public void testDictionaryParameterPassesFromOuter() throws Exception {
+                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/dictionaryParameterPassesFromOuter.kt");
+                doTest(fileName);
+            }
         }
     }
 
