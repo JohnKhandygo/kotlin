@@ -21,10 +21,7 @@ import org.jetbrains.kotlin.builtins.*
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.descriptors.annotations.Annotations
 import org.jetbrains.kotlin.descriptors.annotations.AnnotationsImpl
-import org.jetbrains.kotlin.descriptors.impl.ClassConstructorDescriptorImpl
-import org.jetbrains.kotlin.descriptors.impl.FunctionExpressionDescriptor
-import org.jetbrains.kotlin.descriptors.impl.SimpleFunctionDescriptorImpl
-import org.jetbrains.kotlin.descriptors.impl.ValueParameterDescriptorImpl
+import org.jetbrains.kotlin.descriptors.impl.*
 import org.jetbrains.kotlin.diagnostics.DiagnosticUtils
 import org.jetbrains.kotlin.diagnostics.Errors.*
 import org.jetbrains.kotlin.lexer.KtTokens
@@ -159,7 +156,8 @@ class FunctionDescriptorResolver(
                 }
 
 
-        val valueParameterDescriptors = createValueParameterDescriptors(function, functionDescriptor, headerScope, trace, expectedFunctionType)
+        val valueParameterDescriptors = createValueParameterDescriptors(function, functionDescriptor, headerScope, trace,
+                                                                        expectedFunctionType, typeParameterDescriptors)
 
         headerScope.freeze()
 
@@ -198,7 +196,8 @@ class FunctionDescriptorResolver(
             functionDescriptor: SimpleFunctionDescriptorImpl,
             innerScope: LexicalWritableScope,
             trace: BindingTrace,
-            expectedFunctionType: KotlinType
+            expectedFunctionType: KotlinType,
+            typeParameterDescriptors:  List<TypeParameterDescriptorImpl>
     ): List<ValueParameterDescriptor> {
         val expectedValueParameters = expectedFunctionType.getValueParameters(functionDescriptor)
         val expectedParameterTypes = expectedValueParameters?.map { it.type.removeParameterNameAnnotation() }
@@ -225,7 +224,8 @@ class FunctionDescriptorResolver(
                 innerScope,
                 function.valueParameters,
                 trace,
-                expectedParameterTypes
+                expectedParameterTypes,
+                typeParameterDescriptors
         )
     }
 
@@ -311,7 +311,8 @@ class FunctionDescriptorResolver(
                 LexicalScopeKind.CONSTRUCTOR_HEADER
         )
         val constructor = constructorDescriptor.initialize(
-                resolveValueParameters(constructorDescriptor, parameterScope, valueParameters, trace, null),
+                resolveValueParameters(constructorDescriptor, parameterScope, valueParameters, trace, null,
+                                       emptyList<TypeParameterDescriptorImpl>()),
                 resolveVisibilityFromModifiers(
                         modifierList,
                         DescriptorUtils.getDefaultConstructorVisibility(classDescriptor)
@@ -328,9 +329,33 @@ class FunctionDescriptorResolver(
             parameterScope: LexicalWritableScope,
             valueParameters: List<KtParameter>,
             trace: BindingTrace,
-            expectedParameterTypes: List<KotlinType>?
+            expectedParameterTypes: List<KotlinType>?,
+            typeParameters: List<TypeParameterDescriptorImpl>
     ): List<ValueParameterDescriptor> {
         val result = ArrayList<ValueParameterDescriptor>()
+
+        var additionalParametersCount = 0
+        for (typeParameter in typeParameters) {
+            for (upperBound in typeParameter.upperBounds) {
+                if (TypeUtils.isTypeClass(upperBound)) {
+                    val typeClassValueParameterDescriptor = ValueParameterDescriptorImpl(
+                            functionDescriptor,
+                            null,
+                            additionalParametersCount,
+                            Annotations.EMPTY,
+                            Name.identifier("_dictionary_" + additionalParametersCount),
+                            upperBound,
+                            false,
+                            false,
+                            false,
+                            null,
+                            SourceElement.NO_SOURCE)
+                    parameterScope.addVariableDescriptor(typeClassValueParameterDescriptor)
+                    result.add(typeClassValueParameterDescriptor)
+                    ++additionalParametersCount
+                }
+            }
+        }
 
         for (i in valueParameters.indices) {
             val valueParameter = valueParameters[i]
@@ -374,7 +399,9 @@ class FunctionDescriptorResolver(
             }
 
             val valueParameterDescriptor = descriptorResolver.resolveValueParameterDescriptor(parameterScope, functionDescriptor,
-                                                                                              valueParameter, i, type, trace)
+                                                                                              valueParameter,
+                                                                                              i + additionalParametersCount,
+                                                                                              type, trace)
             parameterScope.addVariableDescriptor(valueParameterDescriptor)
             result.add(valueParameterDescriptor)
         }
