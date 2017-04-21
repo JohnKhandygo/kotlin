@@ -32,7 +32,6 @@ import org.jetbrains.kotlin.incremental.record
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtDeclaration
-import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.KtTypeReference
 import org.jetbrains.kotlin.resolve.*
 import org.jetbrains.kotlin.resolve.lazy.LazyClassContext
@@ -44,6 +43,7 @@ import org.jetbrains.kotlin.storage.NotNullLazyValue
 import org.jetbrains.kotlin.storage.NullableLazyValue
 import org.jetbrains.kotlin.types.DeferredType
 import org.jetbrains.kotlin.types.KotlinType
+import org.jetbrains.kotlin.types.checker.KotlinTypeChecker
 import java.util.*
 
 open class LazyClassMemberScope(
@@ -133,6 +133,13 @@ open class LazyClassMemberScope(
         generateSyntheticCompanionObject(name, result)
     }
 
+    private val typeClassCompanionSpecificFunctionsScope: MemberScope = if (DescriptorUtils.isTypeClassCompanion(thisDescriptor)) {
+        ClassResolutionScopesSupport.newScopeForTypeClassCompanion(c.storageManager, thisDescriptor)
+    }
+    else {
+        MemberScope.Empty
+    }
+
     override fun getNonDeclaredFunctions(name: Name, result: MutableSet<SimpleFunctionDescriptor>) {
         val location = NoLookupLocation.FOR_ALREADY_TRACKED
 
@@ -144,7 +151,23 @@ open class LazyClassMemberScope(
         generateDataClassMethods(result, name, location, fromSupertypes)
         c.syntheticResolveExtension.generateSyntheticMethods(thisDescriptor, name, fromSupertypes, result)
         generateFakeOverrides(name, fromSupertypes, result, SimpleFunctionDescriptor::class.java)
+        val typeClassSpecificFunctionForName = typeClassCompanionSpecificFunctionsScope.getContributedFunctions(name, location)
+        //EK: TODO generate warnings here?
+        val uniqueTypeClassSpecificFunctions = typeClassSpecificFunctionForName.filterNot { notContainedIn(it, result) }
+        result.addAll(uniqueTypeClassSpecificFunctions)
     }
+
+    private fun notContainedIn(candidate: SimpleFunctionDescriptor, collected: Set<SimpleFunctionDescriptor>): Boolean {
+        return collected.all { haveDifferentNames(candidate, it) && valueParametersDiffersInTypes(candidate, it) }
+    }
+
+    private fun valueParametersDiffersInTypes(one: SimpleFunctionDescriptor, another: SimpleFunctionDescriptor): Boolean {
+        return one.valueParameters.zip(another.valueParameters).any {
+            (vp1, vp2) -> !KotlinTypeChecker.DEFAULT.equalTypes(vp1.type, vp2.type)
+        }
+    }
+
+    private fun haveDifferentNames(one: SimpleFunctionDescriptor, another: SimpleFunctionDescriptor) = one.name != another.name
 
     private fun generateDataClassMethods(
             result: MutableCollection<SimpleFunctionDescriptor>,

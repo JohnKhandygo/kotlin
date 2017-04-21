@@ -624,20 +624,29 @@ public class DescriptorUtils {
     }
 
 
-    public static boolean isTypeClass(ClassifierDescriptor descriptor) {
+    public static boolean isTypeClass(DeclarationDescriptor descriptor) {
         if (descriptor == null) {
+            return false;
+        }
+        //EK: TODO extend it!
+        if (!isInterface(descriptor)) {
             return false;
         }
         return descriptor.getAnnotations().findAnnotation(TYPECLASS_ANNOTATION_FQ_NAME) != null;
     }
 
-    public static boolean isTypeClassMember(ClassifierDescriptor descriptor) {
+    public static boolean isTypeClassMember(DeclarationDescriptor descriptor) {
         if (descriptor == null) {
             return false;
         }
-        if (isAnnotationClass(descriptor)) {
+        //EK: TODO extend it!
+        if (!isObject(descriptor)) {
             return false;
         }
         return descriptor.getAnnotations().findAnnotation(TYPECLASS_MEMBER_ANNOTATION_FQ_NAME) != null;
+    }
+
+    public static boolean isTypeClassCompanion(ClassDescriptor descriptor) {
+        return descriptor.isCompanionObject() && isTypeClass(descriptor.getContainingDeclaration());
     }
 }

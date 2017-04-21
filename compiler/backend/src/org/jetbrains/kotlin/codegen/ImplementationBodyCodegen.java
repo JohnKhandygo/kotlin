@@ -59,6 +59,8 @@ import org.jetbrains.kotlin.resolve.jvm.jvmSignature.JvmClassSignature;
 import org.jetbrains.kotlin.resolve.jvm.jvmSignature.JvmMethodParameterKind;
 import org.jetbrains.kotlin.resolve.jvm.jvmSignature.JvmMethodParameterSignature;
 import org.jetbrains.kotlin.resolve.jvm.jvmSignature.JvmMethodSignature;
+import org.jetbrains.kotlin.resolve.scopes.DescriptorKindFilter;
+import org.jetbrains.kotlin.resolve.scopes.MemberScope;
 import org.jetbrains.kotlin.resolve.scopes.receivers.ExtensionReceiver;
 import org.jetbrains.kotlin.resolve.scopes.receivers.ImplicitReceiver;
 import org.jetbrains.kotlin.resolve.scopes.receivers.ReceiverValue;
@@ -377,7 +379,55 @@ public class ImplementationBodyCodegen extends ClassBodyCodegen {
         for (ExpressionCodegenExtension extension : ExpressionCodegenExtension.Companion.getInstances(state.getProject())) {
             extension.generateClassSyntheticParts(this);
         }
+
+        generateTypeClassMethodsAccessorsIfApplicable();
     }
+
+    private void generateTypeClassMethodsAccessorsIfApplicable() {
+        if (!DescriptorUtils.isTypeClassCompanion(descriptor)) return;
+        ClassDescriptor containingClass = (ClassDescriptor) descriptor.getContainingDeclaration();
+        Type containingClassType = typeMapper.mapType(containingClass);
+        Collection<DeclarationDescriptor> callableDescriptors = descriptor.getUnsubstitutedMemberScope()
+                .getContributedDescriptors(
+                        DescriptorKindFilter.FUNCTIONS,
+                        MemberScope.Companion.getALL_NAME_FILTER());
+        for (DeclarationDescriptor callableDescriptor : callableDescriptors) {
+            if (!(callableDescriptor instanceof FunctionDescriptor)) continue;
+            FunctionDescriptor functionDescriptor = (FunctionDescriptor) callableDescriptor;
+            if (functionDescriptor.getKind() != CallableMemberDescriptor.Kind.TYPE_CLASS_FUNCTION_DELEGATE) continue;
+
+            Method mappedCallableDescriptor = typeMapper.mapAsmMethod(functionDescriptor);
+            MethodVisitor mv = v.newMethod(
+                    JvmDeclarationOrigin.NO_ORIGIN,
+                    ACC_PUBLIC,
+                    mappedCallableDescriptor.getName(),
+                    mappedCallableDescriptor.getDescriptor(),
+                    null,
+                    null);
+
+            InstructionAdapter iv = new InstructionAdapter(mv);
+            mv.visitCode();
+
+            int parameterIndex = 1;// localVariable 0 = this
+            for (ValueParameterDescriptor parameterDescriptor : functionDescriptor.getValueParameters()) {
+                Type type = typeMapper.mapType(parameterDescriptor.getType());
+                iv.load(parameterIndex, type);
+                parameterIndex += type.getSize();
+            }
+
+            Method originalCallableDescriptor = typeMapper.mapAsmMethod(functionDescriptor);
+            iv.invokespecial(
+                    containingClassType.getInternalName(),
+                    originalCallableDescriptor.getName(),
+                    originalCallableDescriptor.getDescriptor(),
+                    false);
+
+            iv.areturn(mappedCallableDescriptor.getReturnType());
+
+            FunctionCodegen.endVisit(mv, mappedCallableDescriptor.getName(), myClass);
+        }
+    }
+
 
     @Override
     protected void generateConstructors() {

@@ -62,7 +62,11 @@ class SyntheticClassOrObjectDescriptor(
     private val typeConstructor = SyntheticTypeConstructor(c.storageManager)
     private val resolutionScopesSupport = ClassResolutionScopesSupport(thisDescriptor, c.storageManager, { outerScope })
     private val syntheticSupertypes = mutableListOf<KotlinType>().apply { c.syntheticResolveExtension.addSyntheticSupertypes(thisDescriptor, this) }
-    private val unsubstitutedMemberScope = LazyClassMemberScope(c, SyntheticClassMemberDeclarationProvider(syntheticDeclaration), this, c.trace)
+    private val unsubstitutedMemberScope = if (DescriptorUtils.isTypeClassCompanion(this)) {
+        ClassResolutionScopesSupport.newScopeForTypeClassCompanion(c.storageManager, this)
+    } else {
+        LazyClassMemberScope(c, SyntheticClassMemberDeclarationProvider(syntheticDeclaration), this, c.trace)
+    }
     private val unsubstitutedPrimaryConstructor = createUnsubstitutedPrimaryConstructor()
 
     override val annotations: Annotations get() = Annotations.EMPTY
@@ -117,6 +121,7 @@ class SyntheticClassOrObjectDescriptor(
         override fun getDeclarationDescriptor(): ClassifierDescriptor = thisDescriptor
         override fun computeSupertypes(): Collection<KotlinType> = syntheticSupertypes
         override val supertypeLoopChecker: SupertypeLoopChecker = SupertypeLoopChecker.EMPTY
+        override fun toString(): String = "Synthetic Constructor"
     }
 
     private class SyntheticClassMemberDeclarationProvider(

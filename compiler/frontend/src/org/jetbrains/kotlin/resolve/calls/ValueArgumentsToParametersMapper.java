@@ -40,6 +40,7 @@ import org.jetbrains.kotlin.resolve.calls.util.CallMaker;
 import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt;
 import org.jetbrains.kotlin.resolve.scopes.DescriptorKindFilter;
 import org.jetbrains.kotlin.resolve.scopes.LexicalScope;
+import org.jetbrains.kotlin.resolve.scopes.MemberScope;
 import org.jetbrains.kotlin.types.KotlinType;
 import org.jetbrains.kotlin.types.TypeUtils;
 
@@ -285,9 +286,16 @@ public class ValueArgumentsToParametersMapper {
                     if (!TypeUtils.isTypeClass(parameterType)) {
                         break;
                     }
-                    KtExpression valueArgumentExpression = valueArgumentExpressionFromOuterOrNullExpression(parameterType);
-                    state = state.processPositionedArgumentFromOuterScope(
-                            CallMaker.makeValueArgument(valueArgumentExpression));
+                    KtExpression valueArgumentExpression = findVariableExpressionWithTypeFromOuter(parameterType);
+                    if (valueArgumentExpression != null) {
+                        state = state.processPositionedArgumentFromOuterScope(
+                                CallMaker.makeValueArgument(valueArgumentExpression));
+                    } else {
+                        //EK: TODO do it with caching or smth like this to avoid every-time-creation of objects.
+                        KtExpression nullExpression = new KtPsiFactory(call.getCallElement().getProject()).createExpression("null");
+                        state = state.processPositionedArgument(
+                                CallMaker.makeValueArgument(nullExpression));
+                    }
                 }
             }
 
@@ -312,16 +320,6 @@ public class ValueArgumentsToParametersMapper {
             reportUnmappedParameters();
         }
 
-        @NotNull
-        private KtExpression valueArgumentExpressionFromOuterOrNullExpression(KotlinType givenType) {
-            KtExpression valueArgumentExpression = findVariableExpressionWithTypeFromOuter(givenType);
-            if (valueArgumentExpression == null) {
-                //EK: TODO do it with caching or smth like this to avoid every-time-creation of objects.
-                return new KtPsiFactory(call.getCallElement().getProject()).createExpression("null");
-            }
-            return valueArgumentExpression;
-        }
-
         @Nullable
         private KtExpression findVariableExpressionWithTypeFromOuter(KotlinType givenType) {
             Collection<DeclarationDescriptor> descriptors = getAllDescriptorsFromOuter();
@@ -343,12 +341,7 @@ public class ValueArgumentsToParametersMapper {
             LexicalScope calleeScope = candidateCall.getTrace().get(BindingContext.LEXICAL_SCOPE, call.getCalleeExpression());
             return calleeScope.getContributedDescriptors(
                     DescriptorKindFilter.ALL,
-                    new Function1<Name, Boolean>() {
-                        @Override
-                        public Boolean invoke(Name name) {
-                            return true;
-                        }
-                    });
+                    MemberScope.Companion.getALL_NAME_FILTER());
         }
 
         private void processFunctionLiteralArguments() {

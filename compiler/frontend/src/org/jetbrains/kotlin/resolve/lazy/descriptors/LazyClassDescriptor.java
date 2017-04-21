@@ -134,13 +134,13 @@ public class LazyClassDescriptor extends ClassDescriptorBase implements ClassDes
 
         StorageManager storageManager = c.getStorageManager();
 
+        this.isCompanionObject = classLikeInfo instanceof KtObjectInfo && ((KtObjectInfo) classLikeInfo).isCompanionObject();
         this.unsubstitutedMemberScope = createMemberScope(c, this.declarationProvider);
         this.kind = classLikeInfo.getClassKind();
         this.staticScope = kind == ClassKind.ENUM_CLASS ? new StaticScopeForKotlinEnum(storageManager, this) : MemberScope.Empty.INSTANCE;
 
         this.typeConstructor = new LazyClassTypeConstructor();
 
-        this.isCompanionObject = classLikeInfo instanceof KtObjectInfo && ((KtObjectInfo) classLikeInfo).isCompanionObject();
 
         final KtModifierList modifierList = classLikeInfo.getModifierList();
         if (kind.isSingleton()) {
@@ -473,9 +473,10 @@ public class LazyClassDescriptor extends ClassDescriptorBase implements ClassDes
     }
 
     private ClassDescriptorWithResolutionScopes createSyntheticCompanionObjectDescriptor() {
-        Name syntheticCompanionName = c.getSyntheticResolveExtension().getSyntheticCompanionObjectNameIfNeeded(this);
-        if (syntheticCompanionName == null)
-            return null;
+        Name syntheticCompanionName = DescriptorUtils.isTypeClass(this) ?
+                                      Name.identifier("Companion") :
+                                      c.getSyntheticResolveExtension().getSyntheticCompanionObjectNameIfNeeded(this);
+        if (syntheticCompanionName == null) return null;
         return new SyntheticClassOrObjectDescriptor(c,
                 /* parentClassOrObject= */ classOrObject,
                 this, syntheticCompanionName, getSource(),

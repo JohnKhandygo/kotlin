@@ -16,14 +16,17 @@
 
 package org.jetbrains.kotlin.resolve.lazy.descriptors
 
-import org.jetbrains.kotlin.descriptors.ClassDescriptor
-import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
-import org.jetbrains.kotlin.descriptors.ReceiverParameterDescriptor
+import org.jetbrains.kotlin.descriptors.*
+import org.jetbrains.kotlin.descriptors.annotations.Annotations
+import org.jetbrains.kotlin.descriptors.impl.ValueParameterDescriptorImpl
+import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.KtParameter
+import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperclassesWithoutAny
 import org.jetbrains.kotlin.resolve.scopes.*
 import org.jetbrains.kotlin.resolve.scopes.utils.ThrowingLexicalScope
 import org.jetbrains.kotlin.storage.StorageManager
+import org.jetbrains.kotlin.types.KotlinTypeFactory
 import org.jetbrains.kotlin.utils.addIfNotNull
 import java.util.*
 
@@ -115,8 +118,21 @@ class ClassResolutionScopesSupport(
     private fun <T : Any> StorageManager.createLazyValue(onRecursion: ((Boolean) -> T), compute: () -> T) =
             createLazyValueWithPostCompute(compute, onRecursion, {})
 
+
     companion object {
         private val createThrowingLexicalScope: (Boolean) -> LexicalScope =  { ThrowingLexicalScope() }
+
+        fun newScopeForTypeClassCompanion(
+                storageManager: StorageManager,
+                owner: ClassDescriptor
+        ): MemberScope {
+            if (!DescriptorUtils.isTypeClassCompanion(owner)) {
+                //EK: TODO covered in several places... thinking...
+                throw RuntimeException("Not allowed.");
+            }
+            val ownerContainer = owner.containingDeclaration as ClassDescriptor
+            return MappingMemberScopeForFunctions.forTypeClassCompanion(storageManager, owner, ownerContainer)
+        }
     }
 }
 
@@ -140,6 +156,84 @@ fun scopeForInitializerResolution(
                     addVariableDescriptor(descriptor)
                 }
             }
+        }
+    }
+}
+
+private class MappingMemberScopeForFunctions(
+        storageManager: StorageManager,
+        containingClass: ClassDescriptor,
+        private val baseScope: MemberScope,
+        private val functionMapping: (FunctionDescriptor) -> FunctionDescriptor
+) : GivenFunctionsMemberScope(storageManager, containingClass) {
+    override fun computeDeclaredFunctions(): List<FunctionDescriptor> {
+        return baseScope
+                .getContributedDescriptors(
+                        DescriptorKindFilter.FUNCTIONS,
+                        MemberScope.ALL_NAME_FILTER)
+                .filterIsInstance<FunctionDescriptor>()
+                .map(functionMapping);
+    }
+
+    companion object {
+        fun forTypeClassCompanion(
+                storageManager: StorageManager,
+                owner: ClassDescriptor,
+                ownerContainer: ClassDescriptor
+        ): MemberScope {
+            return MappingMemberScopeForFunctions(
+                    storageManager,
+                    owner,
+                    ownerContainer.unsubstitutedMemberScope) {
+                if (!DescriptorUtils.isTypeClassCompanion(owner)) {
+                    //EK: TODO report inconsistency
+                    throw RuntimeException("Cannot create member scope for non companion descriptor ${owner}.")
+                }
+                it.newCopyBuilder()
+                        //.setOriginal(it)
+                        .setModality(Modality.FINAL)
+                        .setKind(CallableMemberDescriptor.Kind.TYPE_CLASS_FUNCTION_DELEGATE)
+                        .setOwner(owner)
+                        .setDispatchReceiverParameter(owner.getThisAsReceiverParameter())
+                        .setTypeParameters(ownerContainer.declaredTypeParameters)
+                        .setValueParameters(extendValueParametersWithTypeClassDictionary(it, owner, ownerContainer))
+                        .build()!!
+            }
+        }
+
+        private fun extendValueParametersWithTypeClassDictionary(
+                functionDescriptor: FunctionDescriptor,
+                owner: ClassDescriptor,
+                ownerContainer: ClassDescriptor
+        ): List<ValueParameterDescriptor> {
+            val typeClassDictionary = newTypeClassDictionaryParameter(functionDescriptor, owner, ownerContainer)
+            return listOf(typeClassDictionary) + functionDescriptor.valueParameters.map {
+                it.copy(it.containingDeclaration, it.name, it.index + 1)
+            }
+        }
+
+        private fun newTypeClassDictionaryParameter(
+                functionDescriptor: FunctionDescriptor,
+                owner: ClassDescriptor,
+                ownerContainer: ClassDescriptor
+        ): ValueParameterDescriptorImpl {
+            return ValueParameterDescriptorImpl(
+                    functionDescriptor,
+                    null,
+                    0,
+                    Annotations.EMPTY,
+                    Name.identifier("_dictionary_"),
+                    KotlinTypeFactory.simpleNotNullType(
+                            Annotations.EMPTY,
+                            ownerContainer,
+                            ownerContainer.defaultType.arguments
+                    ),
+                    false,
+                    false,
+                    false,
+                    null,
+                    SourceElement.NO_SOURCE
+            )
         }
     }
 }

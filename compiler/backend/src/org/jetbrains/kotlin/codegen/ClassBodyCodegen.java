@@ -16,6 +16,7 @@
 
 package org.jetbrains.kotlin.codegen;
 
+import com.google.common.collect.Lists;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.backend.common.bridges.ImplKt;
@@ -54,20 +55,27 @@ public abstract class ClassBodyCodegen extends MemberCodegen<KtPureClassOrObject
 
     @Override
     protected void generateBody() {
-        List<KtObjectDeclaration> companions = new ArrayList<KtObjectDeclaration>();
+        List<KtObjectDeclaration> declaredCompanions = new ArrayList<KtObjectDeclaration>();
+        List<SyntheticClassOrObjectDescriptor> syntheticCompanionsDescriptors = Lists.newArrayList();
         if (kind != OwnerKind.DEFAULT_IMPLS) {
             //generate nested classes first and only then generate class body. It necessary to access to nested CodegenContexts
             for (KtDeclaration declaration : myClass.getDeclarations()) {
                 if (shouldProcessFirst(declaration)) {
                     //Generate companions after class body generation (need to record all synthetic accessors)
                     if (declaration instanceof KtObjectDeclaration && ((KtObjectDeclaration) declaration).isCompanion()) {
-                        companions.add((KtObjectDeclaration) declaration);
+                        declaredCompanions.add((KtObjectDeclaration) declaration);
                         CodegenUtilKt.populateCompanionBackingFieldNamesToOuterContextIfNeeded((KtObjectDeclaration) declaration, context, state);
                     }
                     else {
                         generateDeclaration(declaration);
                     }
                 }
+            }
+
+            //EK: TODO check declared companions in case of type class declaration
+            ClassDescriptor companionObjectDescriptor = descriptor.getCompanionObjectDescriptor();
+            if (companionObjectDescriptor != null && companionObjectDescriptor instanceof SyntheticClassOrObjectDescriptor) {
+                syntheticCompanionsDescriptors.add((SyntheticClassOrObjectDescriptor) companionObjectDescriptor);
             }
         }
 
@@ -82,14 +90,13 @@ public abstract class ClassBodyCodegen extends MemberCodegen<KtPureClassOrObject
         generateDefaultImplsIfNeeded();
 
         // Generate _declared_ companions
-        for (KtObjectDeclaration companion : companions) {
+        for (KtObjectDeclaration companion : declaredCompanions) {
             genClassOrObject(companion);
         }
 
         // Generate synthetic (non-declared) companion if needed
-        ClassDescriptor companionObjectDescriptor = descriptor.getCompanionObjectDescriptor();
-        if (companionObjectDescriptor instanceof SyntheticClassOrObjectDescriptor) {
-            genSyntheticClassOrObject((SyntheticClassOrObjectDescriptor) companionObjectDescriptor);
+        for (SyntheticClassOrObjectDescriptor companionObjectDescriptor: syntheticCompanionsDescriptors) {
+            genSyntheticClassOrObject(companionObjectDescriptor);
         }
 
         if (!DescriptorUtils.isInterface(descriptor)) {

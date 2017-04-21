@@ -327,6 +327,18 @@ public class ResolvedCallsTestGenerated extends AbstractResolvedCallsTest {
                 String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/dictionaryParameterPassesFromOuter.kt");
                 doTest(fileName);
             }
+
+            @TestMetadata("companionObjectForTypeClassGenrated.kt")
+            public void testCompanionObjectForTypeClassGenrated() throws Exception {
+                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/companionObjectForTypeClassGenrated.kt");
+                doTest(fileName);
+            }
+
+            @TestMetadata("typeClassSpecificMethodsGeneratedForDeclaredCompanion.kt")
+            public void testTypeClassSpecificMethodsGeneratedForDeclaredCompanion() throws Exception {
+                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/typeClassSpecificMethodsGeneratedForDeclaredCompanion.kt");
+                doTest(fileName);
+            }
         }
     }
 

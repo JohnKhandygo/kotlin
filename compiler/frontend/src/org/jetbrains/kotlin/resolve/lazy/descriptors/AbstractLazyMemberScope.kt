@@ -70,6 +70,7 @@ protected constructor(
                             BindingContextUtils.recordTypeClassImplementation(c.trace, superType, classDescriptor)
                         }
                     }
+                    //EK: TODO report inconsistency or try to avoid usage of type class member annotation.
                     if (!typeClassFound) {
                         throw RuntimeException("Class " + name.identifier + " marked as type class member but do not extend any known type classes.")
                     }
