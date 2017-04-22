@@ -63,7 +63,7 @@ class SyntheticClassOrObjectDescriptor(
     private val resolutionScopesSupport = ClassResolutionScopesSupport(thisDescriptor, c.storageManager, { outerScope })
     private val syntheticSupertypes = mutableListOf<KotlinType>().apply { c.syntheticResolveExtension.addSyntheticSupertypes(thisDescriptor, this) }
     private val unsubstitutedMemberScope = if (DescriptorUtils.isTypeClassCompanion(this)) {
-        ClassResolutionScopesSupport.newScopeForTypeClassCompanion(c.storageManager, this)
+        ClassResolutionScopesSupport.newScopeForTypeClassCompanion(c, this)
     } else {
         LazyClassMemberScope(c, SyntheticClassMemberDeclarationProvider(syntheticDeclaration), this, c.trace)
     }

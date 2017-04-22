@@ -275,6 +275,7 @@ public class BindingContextUtils {
             members.add(projection.getType());
         }
         if (knownImplementations.containsKey(members)) {
+            //EK: TODO genrate warnings!
             throw new RuntimeException(
                     format("There is also exists an implementation for typeclass %s and members %s.",
                            typeClassDescriptor, Arrays.toString(members.toArray())));

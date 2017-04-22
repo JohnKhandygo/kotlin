@@ -261,6 +261,7 @@ public interface BindingContext {
     WritableSlice<FqName, Collection<KtFile>> PACKAGE_TO_FILES = Slices.createSimpleSlice();
 
     WritableSlice<ClassifierDescriptor, Map<List<KotlinType>, ClassDescriptor>> TYPECLASS_IMPLEMENTATIONS = Slices.createSimpleSlice();
+    WritableSlice<FunctionDescriptor, FunctionDescriptor> TYPE_CLASS_FUNCTION_DELEGATIONS = Slices.createSimpleSlice();
 
     @SuppressWarnings("UnusedDeclaration")
     @Deprecated // This field is needed only for the side effects of its initializer

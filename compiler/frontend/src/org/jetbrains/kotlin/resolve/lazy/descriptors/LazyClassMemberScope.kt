@@ -134,7 +134,7 @@ open class LazyClassMemberScope(
     }
 
     private val typeClassCompanionSpecificFunctionsScope: MemberScope = if (DescriptorUtils.isTypeClassCompanion(thisDescriptor)) {
-        ClassResolutionScopesSupport.newScopeForTypeClassCompanion(c.storageManager, thisDescriptor)
+        ClassResolutionScopesSupport.newScopeForTypeClassCompanion(c, thisDescriptor)
     }
     else {
         MemberScope.Empty

@@ -35,8 +35,7 @@ public interface CallableMemberDescriptor extends CallableDescriptor, MemberDesc
         DECLARATION,
         FAKE_OVERRIDE,
         DELEGATION,
-        SYNTHESIZED,
-        TYPE_CLASS_FUNCTION_DELEGATE
+        SYNTHESIZED
         ;
         
         public boolean isReal() {

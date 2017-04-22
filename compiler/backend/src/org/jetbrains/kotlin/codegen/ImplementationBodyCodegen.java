@@ -394,7 +394,8 @@ public class ImplementationBodyCodegen extends ClassBodyCodegen {
         for (DeclarationDescriptor callableDescriptor : callableDescriptors) {
             if (!(callableDescriptor instanceof FunctionDescriptor)) continue;
             FunctionDescriptor functionDescriptor = (FunctionDescriptor) callableDescriptor;
-            if (functionDescriptor.getKind() != CallableMemberDescriptor.Kind.TYPE_CLASS_FUNCTION_DELEGATE) continue;
+            FunctionDescriptor originalTypeClassFunction = bindingContext.get(BindingContext.TYPE_CLASS_FUNCTION_DELEGATIONS, functionDescriptor);
+            if (originalTypeClassFunction == null) continue;
 
             Method mappedCallableDescriptor = typeMapper.mapAsmMethod(functionDescriptor);
             MethodVisitor mv = v.newMethod(
@@ -415,7 +416,7 @@ public class ImplementationBodyCodegen extends ClassBodyCodegen {
                 parameterIndex += type.getSize();
             }
 
-            Method originalCallableDescriptor = typeMapper.mapAsmMethod(functionDescriptor);
+            Method originalCallableDescriptor = typeMapper.mapAsmMethod(originalTypeClassFunction);
             iv.invokespecial(
                     containingClassType.getInternalName(),
                     originalCallableDescriptor.getName(),
