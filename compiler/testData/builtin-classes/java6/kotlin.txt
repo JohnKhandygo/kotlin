@@ -748,6 +748,10 @@ public open class Throwable : kotlin.Any, java.io.Serializable {
     public open fun setStackTrace(/*0*/ p0: kotlin.Array<(out) java.lang.StackTraceElement!>!): kotlin.Unit
 }
 
+@kotlin.annotation.Target(allowedTargets = {AnnotationTarget.CLASS}) @kotlin.annotation.Retention(value = AnnotationRetention.BINARY) @kotlin.annotation.MustBeDocumented @kotlin.SinceKotlin(version = "1.1") public final annotation class TypeClass : kotlin.Annotation {
+    /*primary*/ public constructor TypeClass()
+}
+
 public object Unit {
     /*primary*/ private constructor Unit()
 }

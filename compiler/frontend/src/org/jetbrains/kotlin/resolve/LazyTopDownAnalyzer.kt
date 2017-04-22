@@ -31,6 +31,7 @@ import org.jetbrains.kotlin.resolve.checkers.ClassifierUsageChecker
 import org.jetbrains.kotlin.resolve.lazy.*
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyScriptDescriptor
+import org.jetbrains.kotlin.types.TypeUtils
 import java.util.*
 
 class LazyTopDownAnalyzer(
@@ -195,6 +196,8 @@ class LazyTopDownAnalyzer(
 
         resolveAllHeadersInClasses(c)
 
+        registerAllTypeClassMembers(c)
+
         declarationResolver.checkRedeclarationsInPackages(topLevelDescriptorProvider, topLevelFqNames)
         declarationResolver.checkRedeclarations(c)
 
@@ -213,6 +216,16 @@ class LazyTopDownAnalyzer(
         ClassifierUsageChecker.check(declarations, trace, languageVersionSettings, classifierUsageCheckers)
 
         return c
+    }
+
+    private fun registerAllTypeClassMembers(c: TopDownAnalysisContext) {
+        for (classDescriptor in c.allClasses) {
+            for (superType in classDescriptor.typeConstructor.getSupertypes()) {
+                if (TypeUtils.isTypeClass(superType)) {
+                    BindingContextUtils.recordTypeClassImplementation(trace, superType, classDescriptor)
+                }
+            }
+        }
     }
 
     private fun resolveAllHeadersInClasses(c: TopDownAnalysisContext) {

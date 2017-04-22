@@ -137,3 +137,12 @@ public annotation class DslMarker
 @MustBeDocumented
 @SinceKotlin("1.1")
 public annotation class PublishedApi
+
+/**
+ * Specifies that annotated class declares type class
+ */
+@Target(CLASS)
+@Retention(AnnotationRetention.BINARY)
+@MustBeDocumented
+@SinceKotlin("1.1")
+public annotation class TypeClass

@@ -304,6 +304,7 @@ public abstract class KotlinBuiltIns {
         public final FqName mustBeDocumented = annotationName("MustBeDocumented");
         public final FqName unsafeVariance = fqName("UnsafeVariance");
         public final FqName publishedApi = fqName("PublishedApi");
+        public final FqName typeClass = fqName("TypeClass");
 
         public final FqName iterator = collectionsFqName("Iterator");
         public final FqName iterable = collectionsFqName("Iterable");

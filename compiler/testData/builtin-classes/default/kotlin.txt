@@ -723,6 +723,10 @@ public open class Throwable {
         public open fun <get-message>(): kotlin.String?
 }
 
+@kotlin.annotation.Target(allowedTargets = {AnnotationTarget.CLASS}) @kotlin.annotation.Retention(value = AnnotationRetention.BINARY) @kotlin.annotation.MustBeDocumented @kotlin.SinceKotlin(version = "1.1") public final annotation class TypeClass : kotlin.Annotation {
+    /*primary*/ public constructor TypeClass()
+}
+
 public object Unit {
     /*primary*/ private constructor Unit()
 }

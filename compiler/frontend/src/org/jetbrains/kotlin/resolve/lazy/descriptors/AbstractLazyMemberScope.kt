@@ -60,22 +60,7 @@ protected constructor(
                 LazyScriptDescriptor(c as ResolveSession, thisDescriptor, name, it)
             else {
                 val isExternal = it.modifierList?.hasModifier(KtTokens.EXTERNAL_KEYWORD) ?: false
-                val classDescriptor = LazyClassDescriptor(c, thisDescriptor, name, it, isExternal)
-                //EK: TODO consider reimplement to preserve laziness.
-                if (DescriptorUtils.isTypeClassMember(classDescriptor)) {
-                    var typeClassFound = false
-                    for (superType in classDescriptor.typeConstructor.getSupertypes()) {
-                        if (TypeUtils.isTypeClass(superType)) {
-                            typeClassFound = true
-                            BindingContextUtils.recordTypeClassImplementation(c.trace, superType, classDescriptor)
-                        }
-                    }
-                    //EK: TODO report inconsistency or try to avoid usage of type class member annotation.
-                    if (!typeClassFound) {
-                        throw RuntimeException("Class " + name.identifier + " marked as type class member but do not extend any known type classes.")
-                    }
-                }
-                classDescriptor
+                LazyClassDescriptor(c, thisDescriptor, name, it, isExternal)
             }
         }
         getNonDeclaredClasses(name, result)

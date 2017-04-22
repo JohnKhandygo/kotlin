@@ -153,7 +153,7 @@ open class LazyClassMemberScope(
         generateFakeOverrides(name, fromSupertypes, result, SimpleFunctionDescriptor::class.java)
         val typeClassSpecificFunctionForName = typeClassCompanionSpecificFunctionsScope.getContributedFunctions(name, location)
         //EK: TODO generate warnings here?
-        val uniqueTypeClassSpecificFunctions = typeClassSpecificFunctionForName.filterNot { notContainedIn(it, result) }
+        val uniqueTypeClassSpecificFunctions = typeClassSpecificFunctionForName.filter { notContainedIn(it, result) }
         result.addAll(uniqueTypeClassSpecificFunctions)
     }
 
