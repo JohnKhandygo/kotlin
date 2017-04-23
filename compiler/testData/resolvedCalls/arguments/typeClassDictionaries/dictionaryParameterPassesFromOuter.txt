@@ -3,10 +3,6 @@ package test
 @TypeClass
 interface TC<T> {
     fun doStuff(t: T)
-
-    companion object {
-        fun <T> doStuff(d: TC<T>, t: T) = d.doStuff(t)
-    }
 }
 
 object TCMember : TC<Double> {
@@ -14,20 +10,21 @@ object TCMember : TC<Double> {
 }
 
 fun <T, C : TC<T>> doStuff(t: T) = TC.<caret>doStuff(t)
+fun <T, C : TC<T>> wrappedDoStuff(t: T) = doStuff(t)
 
 fun main() {
     val d: Double = 0.0
-    <caret>doStuff(d)
+    <caret>wrappedDoStuff(d)
 }
 
 
 Resolved call:
 
-Candidate descriptor: fun <T> doStuff(d: TC<T>, t: T): Unit defined in test.TC.Companion
-Resulting descriptor: fun <T> doStuff(d: TC<T>, t: T): Unit defined in test.TC.Companion
+Candidate descriptor: fun <T> doStuff(_dictionary_: TC<T>, t: T): Unit defined in test.TC.Companion
+Resulting descriptor: fun <T> doStuff(_dictionary_: TC<T>, t: T): Unit defined in test.TC.Companion
 
 Explicit receiver kind = DISPATCH_RECEIVER
-Dispatch receiver = TC {Companion}
+Dispatch receiver = TC {Synthetic Constructor}
 Extension receiver = NO_RECEIVER
 
 Value arguments mapping:
@@ -36,14 +33,14 @@ SUCCESS  t : T = t
 
 Resolved value arguments mapping:
 
-SUCCESS  d : TC<T> = _dictionary_0
+SUCCESS  _dictionary_ : TC<T> = _dictionary_0
 SUCCESS  t : T = t
 
 
 Resolved call:
 
-Candidate descriptor: fun <T, C : TC<T>> doStuff(_dictionary_0: TC<T>, t: T): Unit defined in test
-Resulting descriptor: fun <T, C : TC<Double>> doStuff(_dictionary_0: TC<Double>, t: Double): Unit defined in test
+Candidate descriptor: fun <T, C : TC<T>> wrappedDoStuff(_dictionary_0: TC<T>, t: T): Unit defined in test
+Resulting descriptor: fun <T, C : TC<Double>> wrappedDoStuff(_dictionary_0: TC<Double>, t: Double): Unit defined in test
 
 Explicit receiver kind = NO_EXPLICIT_RECEIVER
 Dispatch receiver = NO_RECEIVER

@@ -38,7 +38,7 @@ enum class ArgumentMatchStatus(val isError: Boolean = true) {
 
     UNKNOWN(),
 
-    TYPE_CLASS_DICTIONARY_FROM_OUTER()
+    IMPLICIT_UNINFERRED_ARGUMENT()
 }
 
 interface ArgumentMatch : ArgumentMapping {

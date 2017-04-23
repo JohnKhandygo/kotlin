@@ -9,7 +9,7 @@ object TCMember : TC<Double, List<Any?>> {
     override fun doStuff(t1: Double, t2: List<Any?>, t3: Map<Double, List<Any?>>) {}
 }
 
-fun <T1, T2> doStuff(dictionary: TC<T1, T2>, t1: T1, t2: T2, t3: Map<T1, T2>) = dictionary.doStuff(t1, t2, t3)
+fun <T1, T2, C: TC<T1, T2>> doStuff(t1: T1, t2: T2, t3: Map<T1, T2>) = TC.doStuff(t1, t2, t3)
 
 fun main() {
     <caret>doStuff<Double, List<Any?>>(0.0, emptyList(), emptyMap())
@@ -18,8 +18,8 @@ fun main() {
 
 Resolved call:
 
-Candidate descriptor: fun <T1, T2> doStuff(dictionary: TC<T1, T2>, t1: T1, t2: T2, t3: Map<T1, T2>): Unit defined in test
-Resulting descriptor: fun <T1, T2> doStuff(dictionary: TC<Double, List<Any?>>, t1: Double, t2: List<Any?>, t3: Map<Double, List<Any?>>): Unit defined in test
+Candidate descriptor: fun <T1, T2, C : TC<T1, T2>> doStuff(_dictionary_0: TC<T1, T2>, t1: T1, t2: T2, t3: Map<T1, T2>): Unit defined in test
+Resulting descriptor: fun <T1, T2, C : TC<Double, List<Any?>>> doStuff(_dictionary_0: TC<Double, List<Any?>>, t1: Double, t2: List<Any?>, t3: Map<Double, List<Any?>>): Unit defined in test
 
 Explicit receiver kind = NO_EXPLICIT_RECEIVER
 Dispatch receiver = NO_RECEIVER
@@ -33,7 +33,7 @@ SUCCESS  t3 : Map<Double, List<Any?>> = emptyMap()
 
 Resolved value arguments mapping:
 
-SUCCESS  dictionary : TC<Double, List<Any?>> = test.TCMember
+SUCCESS  _dictionary_0 : TC<Double, List<Any?>> = test.TCMember
 SUCCESS  t1 : Double = 0.0
 SUCCESS  t2 : List<Any?> = emptyList()
 SUCCESS  t3 : Map<Double, List<Any?>> = emptyMap()

@@ -19,7 +19,7 @@ object A2Member : TC<A2> {
     override fun doStuff(): A2 = A2()
 }
 
-fun <T> doStuff(dictionary: TC<in T>): T = dictionary.doStuff()
+fun <T, C: TC<in T>> doStuff(): T = TC.doStuff()
 
 fun main() {
     <caret>doStuff<A1>()
@@ -30,8 +30,8 @@ fun main() {
 
 Resolved call:
 
-Candidate descriptor: fun <T> doStuff(dictionary: TC<in T>): T defined in test
-Resulting descriptor: fun <T> doStuff(dictionary: TC<in A1>): A1 defined in test
+Candidate descriptor: fun <T, C : TC<in T>> doStuff(_dictionary_0: TC<in T>): T defined in test
+Resulting descriptor: fun <T, C : TC<in A1>> doStuff(_dictionary_0: TC<in A1>): A1 defined in test
 
 Explicit receiver kind = NO_EXPLICIT_RECEIVER
 Dispatch receiver = NO_RECEIVER
@@ -39,13 +39,13 @@ Extension receiver = NO_RECEIVER
 
 Resolved value arguments mapping:
 
-SUCCESS  dictionary : TC<in A1> = test.A1Member
+SUCCESS  _dictionary_0 : TC<in A1> = test.A1Member
 
 
 Resolved call:
 
-Candidate descriptor: fun <T> doStuff(dictionary: TC<in T>): T defined in test
-Resulting descriptor: fun <T> doStuff(dictionary: TC<in A2>): A2 defined in test
+Candidate descriptor: fun <T, C : TC<in T>> doStuff(_dictionary_0: TC<in T>): T defined in test
+Resulting descriptor: fun <T, C : TC<in A2>> doStuff(_dictionary_0: TC<in A2>): A2 defined in test
 
 Explicit receiver kind = NO_EXPLICIT_RECEIVER
 Dispatch receiver = NO_RECEIVER
@@ -53,13 +53,13 @@ Extension receiver = NO_RECEIVER
 
 Resolved value arguments mapping:
 
-SUCCESS  dictionary : TC<in A2> = test.A2Member
+SUCCESS  _dictionary_0 : TC<in A2> = test.A2Member
 
 
 Resolved call:
 
-Candidate descriptor: fun <T> doStuff(dictionary: TC<in T>): T defined in test
-Resulting descriptor: fun <T> doStuff(dictionary: TC<in A4>): A4 defined in test
+Candidate descriptor: fun <T, C : TC<in T>> doStuff(_dictionary_0: TC<in T>): T defined in test
+Resulting descriptor: fun <T, C : TC<in A4>> doStuff(_dictionary_0: TC<in A4>): A4 defined in test
 
 Explicit receiver kind = NO_EXPLICIT_RECEIVER
 Dispatch receiver = NO_RECEIVER
@@ -67,4 +67,4 @@ Extension receiver = NO_RECEIVER
 
 Resolved value arguments mapping:
 
-SUCCESS  dictionary : TC<in A4> = test.A2Member
+SUCCESS  _dictionary_0 : TC<in A4> = test.A2Member

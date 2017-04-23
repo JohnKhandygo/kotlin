@@ -33,3 +33,10 @@ internal annotation class PureReifiable
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.BINARY)
 internal annotation class PlatformDependent
+
+/**
+ * Specifies that corresponsing function argument should be inferred implicitly by compalier at call site.
+ */
+@Target(AnnotationTarget.VALUE_PARAMETER)
+@Retention(AnnotationRetention.BINARY)
+internal annotation class ImplicitTypeClassDictionary

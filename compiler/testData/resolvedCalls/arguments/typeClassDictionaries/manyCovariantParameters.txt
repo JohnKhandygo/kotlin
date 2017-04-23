@@ -17,7 +17,7 @@ object MiddleMember: TC<A2, A3, A4>
 
 object LowestMember : TC<A5, A5, A5>
 
-fun <T1, T2, T3> doStuff(dictionary: TC<T1, T2, out T3>) {}
+fun <T1, T2, T3, C: TC<T1, T2, out T3>> doStuff() {}
 
 fun main() {
     <caret>doStuff<A1, A1, A1>()
@@ -28,8 +28,8 @@ fun main() {
 
 Resolved call:
 
-Candidate descriptor: fun <T1, T2, T3> doStuff(dictionary: TC<T1, T2, out T3>): Unit defined in test
-Resulting descriptor: fun <T1, T2, T3> doStuff(dictionary: TC<A1, A1, out A1>): Unit defined in test
+Candidate descriptor: fun <T1, T2, T3, C : TC<T1, T2, out T3>> doStuff(_dictionary_0: TC<T1, T2, out T3>): Unit defined in test
+Resulting descriptor: fun <T1, T2, T3, C : TC<A1, A1, out A1>> doStuff(_dictionary_0: TC<A1, A1, out A1>): Unit defined in test
 
 Explicit receiver kind = NO_EXPLICIT_RECEIVER
 Dispatch receiver = NO_RECEIVER
@@ -37,13 +37,13 @@ Extension receiver = NO_RECEIVER
 
 Resolved value arguments mapping:
 
-SUCCESS  dictionary : TC<A1, A1, out A1> = test.HighestMember
+SUCCESS  _dictionary_0 : TC<A1, A1, out A1> = test.HighestMember
 
 
 Resolved call:
 
-Candidate descriptor: fun <T1, T2, T3> doStuff(dictionary: TC<T1, T2, out T3>): Unit defined in test
-Resulting descriptor: fun <T1, T2, T3> doStuff(dictionary: TC<A2, A2, out A3>): Unit defined in test
+Candidate descriptor: fun <T1, T2, T3, C : TC<T1, T2, out T3>> doStuff(_dictionary_0: TC<T1, T2, out T3>): Unit defined in test
+Resulting descriptor: fun <T1, T2, T3, C : TC<A2, A2, out A3>> doStuff(_dictionary_0: TC<A2, A2, out A3>): Unit defined in test
 
 Explicit receiver kind = NO_EXPLICIT_RECEIVER
 Dispatch receiver = NO_RECEIVER
@@ -51,13 +51,13 @@ Extension receiver = NO_RECEIVER
 
 Resolved value arguments mapping:
 
-SUCCESS  dictionary : TC<A2, A2, out A3> = test.MiddleMember
+SUCCESS  _dictionary_0 : TC<A2, A2, out A3> = test.MiddleMember
 
 
 Resolved call:
 
-Candidate descriptor: fun <T1, T2, T3> doStuff(dictionary: TC<T1, T2, out T3>): Unit defined in test
-Resulting descriptor: fun <T1, T2, T3> doStuff(dictionary: TC<A1, A4, out A1>): Unit defined in test
+Candidate descriptor: fun <T1, T2, T3, C : TC<T1, T2, out T3>> doStuff(_dictionary_0: TC<T1, T2, out T3>): Unit defined in test
+Resulting descriptor: fun <T1, T2, T3, C : TC<A1, A4, out A1>> doStuff(_dictionary_0: TC<A1, A4, out A1>): Unit defined in test
 
 Explicit receiver kind = NO_EXPLICIT_RECEIVER
 Dispatch receiver = NO_RECEIVER
@@ -65,4 +65,4 @@ Extension receiver = NO_RECEIVER
 
 Resolved value arguments mapping:
 
-SUCCESS  dictionary : TC<A1, A4, out A1> = test.LowestMember
+SUCCESS  _dictionary_0 : TC<A1, A4, out A1> = test.LowestMember

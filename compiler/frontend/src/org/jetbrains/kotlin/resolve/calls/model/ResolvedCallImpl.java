@@ -43,7 +43,6 @@ import org.jetbrains.kotlin.types.*;
 import org.jetbrains.kotlin.types.checker.UtilsKt;
 
 import java.util.*;
-import java.util.List;
 
 import static org.jetbrains.kotlin.resolve.calls.results.ResolutionStatus.INCOMPLETE_TYPE_INFERENCE;
 import static org.jetbrains.kotlin.resolve.calls.results.ResolutionStatus.UNKNOWN_STATUS;
@@ -232,16 +231,17 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
                     throw new RuntimeException("Expecting old value for typeclass parameters has exactly one argument.");
                 }
                 ValueArgument oldValueArgument = oldValueArguments.get(0);
-                if (argumentToParameterMap.get(oldValueArgument).getStatus() == ArgumentMatchStatus.TYPE_CLASS_DICTIONARY_FROM_OUTER) {
-                    valueArguments.put(substitutedVersion, entry.getValue());
-                    continue ;
+                if (argumentToParameterMap.get(oldValueArgument).getStatus() == ArgumentMatchStatus.IMPLICIT_UNINFERRED_ARGUMENT) {
+                    ValueArgument newValue = getTypeClassImplementationAsArgument(substitutedVersion,
+                                                                                  typeDeclaration,
+                                                                                  oldValueArgument);
+                    ArgumentMatchImpl match = argumentToParameterMap.remove(oldValueArgument);
+                    argumentToParameterMap.put(newValue, match);
+                    valueArguments.put(substitutedVersion, new ExpressionValueArgument(newValue));
                 }
-                ValueArgument newValue = getTypeClassImplementationAsArgument(substitutedVersion,
-                                                                              typeDeclaration,
-                                                                              oldValueArgument);
-                ArgumentMatchImpl match = argumentToParameterMap.remove(oldValueArgument);
-                argumentToParameterMap.put(newValue, match);
-                valueArguments.put(substitutedVersion, new ExpressionValueArgument(newValue));
+                else {
+                    valueArguments.put(substitutedVersion, entry.getValue());
+                }
             } else {
                 valueArguments.put(substitutedVersion, entry.getValue());
             }
@@ -285,15 +285,18 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
                                                         zeroApproximationSolution,
                                                         0);
         if (solutions.isEmpty()) {
+            //EK: TODO warnings
             throw new RuntimeException("Found no solutions for type class resolution.");
         }
         if (solutions.size() > 1) {
+            //EK: TODO warnings
             throw new RuntimeException("Found more than one solution for type class resolution.");
         }
         CompositeType theOnlySolution = (CompositeType) solutions.iterator().next();
 
         List<KotlinType> member = theOnlySolution.getTypes();
         ClassDescriptor implementationDescriptor = knownImplementations.get(member);
+        //EK: TODO warnings... below statement is not true anymore.
         //EK: TODO if there is no implementation we should look up scope for dictionary from outer entity (e.g. function).
         if (implementationDescriptor == null) {
             throw new RuntimeException(

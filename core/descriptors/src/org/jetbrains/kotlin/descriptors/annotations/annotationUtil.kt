@@ -83,3 +83,13 @@ fun MemberDescriptor.isInlineOnly(): Boolean {
 private fun CallableMemberDescriptor.isReifiable() = typeParameters.any { it.isReified }
 
 private fun CallableMemberDescriptor.hasInlineOnlyAnnotation() = annotations.hasAnnotation(INLINE_ONLY_ANNOTATION_FQ_NAME)
+
+private val IMPLICIT_TYPE_CLASS_DICTIONARY = FqName("kotlin.internal.ImplicitTypeClassDictionary")
+
+fun KotlinBuiltIns.createImplicitTypeClassDictionaryAnnotation(): AnnotationDescriptor {
+    val annotationDescriptor = getBuiltInClassByFqName(IMPLICIT_TYPE_CLASS_DICTIONARY)
+    return AnnotationDescriptorImpl(
+            annotationDescriptor.defaultType,
+            emptyMap(),
+            SourceElement.NO_SOURCE)
+}

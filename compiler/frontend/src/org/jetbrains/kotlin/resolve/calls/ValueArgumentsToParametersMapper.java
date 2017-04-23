@@ -20,7 +20,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.intellij.psi.impl.source.tree.LeafPsiElement;
 import kotlin.collections.CollectionsKt;
-import kotlin.jvm.functions.Function1;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.builtins.functions.FunctionInvokeDescriptor;
@@ -28,7 +27,9 @@ import org.jetbrains.kotlin.descriptors.CallableDescriptor;
 import org.jetbrains.kotlin.descriptors.CallableMemberDescriptor;
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor;
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor;
+import org.jetbrains.kotlin.descriptors.annotations.AnnotationDescriptor;
 import org.jetbrains.kotlin.diagnostics.Diagnostic;
+import org.jetbrains.kotlin.name.FqName;
 import org.jetbrains.kotlin.name.Name;
 import org.jetbrains.kotlin.psi.*;
 import org.jetbrains.kotlin.resolve.BindingContext;
@@ -89,6 +90,8 @@ public class ValueArgumentsToParametersMapper {
     }
 
     private static class Processor<D extends CallableDescriptor> {
+        private static final FqName IMPLICIT_TYPE_CLASS_DICTIONARY = new FqName("kotlin.internal.ImplicitTypeClassDictionary");
+
         private final Call call;
         private final TracingStrategy tracing;
         private final MutableResolvedCall<D> candidateCall;
@@ -162,8 +165,9 @@ public class ValueArgumentsToParametersMapper {
             }
 
             @Override
-            public ProcessorState processPositionedArgumentFromOuterScope(@NotNull ValueArgument argument) {
-                processArgument(argument, nextValueParameter(), ArgumentMatchStatus.TYPE_CLASS_DICTIONARY_FROM_OUTER);
+            public ProcessorState processImplicitArgument(@NotNull ValueArgument argument) {
+                processArgument(argument, nextValueParameter());
+                candidateCall.recordArgumentMatchStatus(argument, ArgumentMatchStatus.IMPLICIT_UNINFERRED_ARGUMENT);
                 return positionedOnly;
             }
 
@@ -176,16 +180,9 @@ public class ValueArgumentsToParametersMapper {
             private void processArgument(
                     @NotNull ValueArgument argument,
                     @Nullable ValueParameterDescriptor parameter) {
-                processArgument(argument, parameter, null);
-            }
-
-            private void processArgument(
-                    @NotNull ValueArgument argument,
-                    @Nullable ValueParameterDescriptor parameter,
-                    @Nullable ArgumentMatchStatus matchStatus) {
                 if (parameter != null) {
                     usedParameters.add(parameter);
-                    putVararg(parameter, argument, matchStatus);
+                    putVararg(parameter, argument);
                 }
                 else {
                     report(TOO_MANY_ARGUMENTS.on(argument.asElement(), candidateCall.getCandidateDescriptor()));
@@ -265,8 +262,9 @@ public class ValueArgumentsToParametersMapper {
             }
 
             @Override
-            public ProcessorState processPositionedArgumentFromOuterScope(@NotNull ValueArgument argument) {
-                throw new RuntimeException("It is not allowed to use dictionary as named parameter.");
+            public ProcessorState processImplicitArgument(@NotNull ValueArgument argument) {
+                //EK: TODO warnings?
+                throw new RuntimeException("It is not allowed to use implicit named parameter.");
             }
 
             @Override
@@ -282,34 +280,17 @@ public class ValueArgumentsToParametersMapper {
 
             if (!isArraySetMethod) {
                 for (ValueParameterDescriptor parameter : parameters) {
-                    KotlinType parameterType = parameter.getType();
-                    if (!TypeUtils.isTypeClass(parameterType)) {
-                        break;
+                    AnnotationDescriptor implicitnessAttribute = parameter.getAnnotations().findAnnotation(IMPLICIT_TYPE_CLASS_DICTIONARY);
+                    if (implicitnessAttribute == null) {
+                        break ;
                     }
-                    KtExpression valueArgumentExpression = findVariableExpressionWithTypeFromOuter(parameterType);
-                    if (valueArgumentExpression != null) {
-                        state = state.processPositionedArgumentFromOuterScope(
-                                CallMaker.makeValueArgument(valueArgumentExpression));
-                    } else {
-                        //EK: TODO do it with caching or smth like this to avoid every-time-creation of objects.
-                        KtExpression nullExpression = new KtPsiFactory(call.getCallElement().getProject()).createExpression("null");
-                        state = state.processPositionedArgument(
-                                CallMaker.makeValueArgument(nullExpression));
-                    }
+                    state = processImplicitArgument(state, parameter);
                 }
             }
 
             for (Iterator<? extends ValueArgument> iterator = argumentsInParentheses.iterator(); iterator.hasNext(); ) {
                 ValueArgument valueArgument = iterator.next();
-                if (valueArgument.isNamed()) {
-                    state = state.processNamedArgument(valueArgument);
-                }
-                else if (isArraySetMethod && !iterator.hasNext()) {
-                    state = state.processArraySetRHS(valueArgument);
-                }
-                else {
-                    state = state.processPositionedArgument(valueArgument);
-                }
+                state = processExplicitArgument(state, isArraySetMethod, valueArgument, !iterator.hasNext());
             }
 
             for (Map.Entry<ValueParameterDescriptor, VarargValueArgument> entry : varargs.entrySet()) {
@@ -320,10 +301,48 @@ public class ValueArgumentsToParametersMapper {
             reportUnmappedParameters();
         }
 
+        private ProcessorState processImplicitArgument(
+                ProcessorState state,
+                ValueParameterDescriptor parameter
+        ) {
+            KotlinType parameterType = parameter.getType();
+            if (!TypeUtils.isTypeClass(parameterType)) {
+                //EK: TODO generate warnings
+                throw new RuntimeException("Non type class parameter annotated as implicit.");
+            }
+            KtExpression valueArgumentExpression = findVariableExpressionWithTypeFromOuter(parameterType);
+            if (valueArgumentExpression != null) {
+                ValueArgument argument = CallMaker.makeValueArgument(valueArgumentExpression);
+                state = processExplicitArgument(state, false, argument, false);
+            } else {
+                //EK: TODO do it with caching or smth like this to avoid every-time-creation of objects.
+                KtExpression nullExpression = new KtPsiFactory(call.getCallElement().getProject()).createExpression("null");
+                state = state.processImplicitArgument(CallMaker.makeValueArgument(nullExpression));
+            }
+            return state;
+        }
+
+        private ProcessorState processExplicitArgument(
+                ProcessorState state,
+                boolean isArraySetMethod,
+                @NotNull ValueArgument valueArgument,
+                boolean isLastArgumentInParentheses
+        ) {
+            if (valueArgument.isNamed()) {
+                return state.processNamedArgument(valueArgument);
+            }
+            else if (isArraySetMethod && isLastArgumentInParentheses) {
+                return state.processArraySetRHS(valueArgument);
+            }
+            else {
+                return state.processPositionedArgument(valueArgument);
+            }
+        }
+
         @Nullable
         private KtExpression findVariableExpressionWithTypeFromOuter(KotlinType givenType) {
             Collection<DeclarationDescriptor> descriptors = getAllDescriptorsFromOuter();
-            // EK: TODO multiple solutions?
+            //EK: TODO multiple solutions?
             for (DeclarationDescriptor contributedDescriptor : descriptors) {
                 if (contributedDescriptor instanceof ValueParameterDescriptor) {
                     KotlinType contributedVariableType = ((ValueParameterDescriptor) contributedDescriptor).getType();
@@ -397,13 +416,6 @@ public class ValueArgumentsToParametersMapper {
         private void putVararg(
                 ValueParameterDescriptor valueParameterDescriptor,
                 ValueArgument valueArgument) {
-            putVararg(valueParameterDescriptor, valueArgument, null);
-        }
-
-        private void putVararg(
-                ValueParameterDescriptor valueParameterDescriptor,
-                ValueArgument valueArgument,
-                ArgumentMatchStatus matchStatus) {
             if (valueParameterDescriptor.getVarargElementType() != null) {
                 VarargValueArgument vararg = varargs.get(valueParameterDescriptor);
                 if (vararg == null) {
@@ -420,9 +432,6 @@ public class ValueArgumentsToParametersMapper {
                 }
                 ResolvedValueArgument argument = new ExpressionValueArgument(valueArgument);
                 candidateCall.recordValueArgument(valueParameterDescriptor, argument);
-                if (matchStatus != null) {
-                    candidateCall.recordArgumentMatchStatus(valueArgument, matchStatus);
-                }
             }
         }
 
@@ -439,7 +448,7 @@ public class ValueArgumentsToParametersMapper {
 
             ProcessorState processPositionedArgument(@NotNull ValueArgument argument);
 
-            ProcessorState processPositionedArgumentFromOuterScope(@NotNull ValueArgument argument);
+            ProcessorState processImplicitArgument(@NotNull ValueArgument argument);
 
             ProcessorState processArraySetRHS(@NotNull ValueArgument argument);
         }

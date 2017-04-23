@@ -16,8 +16,11 @@
 
 package org.jetbrains.kotlin.resolve.lazy.descriptors
 
+import org.jetbrains.kotlin.builtins.DefaultBuiltIns
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.descriptors.annotations.Annotations
+import org.jetbrains.kotlin.descriptors.annotations.AnnotationsImpl
+import org.jetbrains.kotlin.descriptors.annotations.createImplicitTypeClassDictionaryAnnotation
 import org.jetbrains.kotlin.descriptors.impl.ValueParameterDescriptorImpl
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.KtParameter
@@ -28,7 +31,7 @@ import org.jetbrains.kotlin.resolve.lazy.LazyClassContext
 import org.jetbrains.kotlin.resolve.scopes.*
 import org.jetbrains.kotlin.resolve.scopes.utils.ThrowingLexicalScope
 import org.jetbrains.kotlin.storage.StorageManager
-import org.jetbrains.kotlin.types.KotlinTypeFactory
+import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.utils.addIfNotNull
 import java.util.*
 
@@ -192,7 +195,6 @@ private class MappingMemberScopeForFunctions(
                     throw RuntimeException("Cannot create member scope for non companion descriptor ${owner}.")
                 }
                 val mapped = it.newCopyBuilder()
-                        //.setOriginal(it)
                         .setModality(Modality.FINAL)
                         .setKind(CallableMemberDescriptor.Kind.SYNTHESIZED)
                         .setOwner(owner)
@@ -223,7 +225,7 @@ private class MappingMemberScopeForFunctions(
                     functionDescriptor,
                     null,
                     0,
-                    Annotations.EMPTY,
+                    AnnotationsImpl(listOf(DefaultBuiltIns.Instance.createImplicitTypeClassDictionaryAnnotation())),
                     Name.identifier("_dictionary_"),
                     KotlinTypeFactory.simpleNotNullType(
                             Annotations.EMPTY,

@@ -21,6 +21,7 @@ import org.jetbrains.kotlin.builtins.*
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.descriptors.annotations.Annotations
 import org.jetbrains.kotlin.descriptors.annotations.AnnotationsImpl
+import org.jetbrains.kotlin.descriptors.annotations.createImplicitTypeClassDictionaryAnnotation
 import org.jetbrains.kotlin.descriptors.impl.*
 import org.jetbrains.kotlin.diagnostics.DiagnosticUtils
 import org.jetbrains.kotlin.diagnostics.Errors.*
@@ -342,7 +343,7 @@ class FunctionDescriptorResolver(
                             functionDescriptor,
                             null,
                             additionalParametersCount,
-                            Annotations.EMPTY,
+                            AnnotationsImpl(listOf(DefaultBuiltIns.Instance.createImplicitTypeClassDictionaryAnnotation())),
                             Name.identifier("_dictionary_" + additionalParametersCount),
                             upperBound,
                             false,

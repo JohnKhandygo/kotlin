@@ -19,52 +19,52 @@ object A5Member : TC<A5> {
     override fun doStuff(): A5 = A5()
 }
 
-fun <T> doStuff(dictionary: TC<T>): T = dictionary.doStuff()
+//fun <T> doStuff(dictionary: TC<T>): T = dictionary.doStuff()
 
 fun main() {
-    <caret>doStuff<A2>()
-    <caret>doStuff<A3>()
-    <caret>doStuff<A5>()
+    TC.<caret>doStuff<A2>()
+    TC.<caret>doStuff<A3>()
+    TC.<caret>doStuff<A5>()
 }
 
 
 Resolved call:
 
-Candidate descriptor: fun <T> doStuff(dictionary: TC<T>): T defined in test
-Resulting descriptor: fun <T> doStuff(dictionary: TC<A2>): A2 defined in test
+Candidate descriptor: fun <out T> doStuff(_dictionary_: TC<T>): T defined in test.TC.Companion
+Resulting descriptor: fun <out T> doStuff(_dictionary_: TC<A2>): A2 defined in test.TC.Companion
 
-Explicit receiver kind = NO_EXPLICIT_RECEIVER
-Dispatch receiver = NO_RECEIVER
+Explicit receiver kind = DISPATCH_RECEIVER
+Dispatch receiver = TC {Synthetic Constructor}
 Extension receiver = NO_RECEIVER
 
 Resolved value arguments mapping:
 
-SUCCESS  dictionary : TC<A2> = test.A4Member
+SUCCESS  _dictionary_ : TC<A2> = test.A4Member
 
 
 Resolved call:
 
-Candidate descriptor: fun <T> doStuff(dictionary: TC<T>): T defined in test
-Resulting descriptor: fun <T> doStuff(dictionary: TC<A3>): A3 defined in test
+Candidate descriptor: fun <out T> doStuff(_dictionary_: TC<T>): T defined in test.TC.Companion
+Resulting descriptor: fun <out T> doStuff(_dictionary_: TC<A3>): A3 defined in test.TC.Companion
 
-Explicit receiver kind = NO_EXPLICIT_RECEIVER
-Dispatch receiver = NO_RECEIVER
+Explicit receiver kind = DISPATCH_RECEIVER
+Dispatch receiver = TC {Synthetic Constructor}
 Extension receiver = NO_RECEIVER
 
 Resolved value arguments mapping:
 
-SUCCESS  dictionary : TC<A3> = test.A4Member
+SUCCESS  _dictionary_ : TC<A3> = test.A4Member
 
 
 Resolved call:
 
-Candidate descriptor: fun <T> doStuff(dictionary: TC<T>): T defined in test
-Resulting descriptor: fun <T> doStuff(dictionary: TC<A5>): A5 defined in test
+Candidate descriptor: fun <out T> doStuff(_dictionary_: TC<T>): T defined in test.TC.Companion
+Resulting descriptor: fun <out T> doStuff(_dictionary_: TC<A5>): A5 defined in test.TC.Companion
 
-Explicit receiver kind = NO_EXPLICIT_RECEIVER
-Dispatch receiver = NO_RECEIVER
+Explicit receiver kind = DISPATCH_RECEIVER
+Dispatch receiver = TC {Synthetic Constructor}
 Extension receiver = NO_RECEIVER
 
 Resolved value arguments mapping:
 
-SUCCESS  dictionary : TC<A5> = test.A5Member
+SUCCESS  _dictionary_ : TC<A5> = test.A5Member

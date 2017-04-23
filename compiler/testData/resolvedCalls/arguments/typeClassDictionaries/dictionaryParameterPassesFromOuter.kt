@@ -3,10 +3,6 @@ package test
 @TypeClass
 interface TC<T> {
     fun doStuff(t: T)
-
-    companion object {
-        fun <T> doStuff(d: TC<T>, t: T) = d.doStuff(t)
-    }
 }
 
 object TCMember : TC<Double> {
@@ -14,8 +10,9 @@ object TCMember : TC<Double> {
 }
 
 fun <T, C : TC<T>> doStuff(t: T) = TC.<caret>doStuff(t)
+fun <T, C : TC<T>> wrappedDoStuff(t: T) = doStuff(t)
 
 fun main() {
     val d: Double = 0.0
-    <caret>doStuff(d)
+    <caret>wrappedDoStuff(d)
 }

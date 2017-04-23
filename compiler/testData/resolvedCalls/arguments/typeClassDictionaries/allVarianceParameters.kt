@@ -17,10 +17,8 @@ object MiddleMember: TC<A2, A3, A4>
 
 object LowestMember : TC<A5, A5, A5>
 
-fun <T1, T2, T3> doStuff(dictionary: TC<T1, T2, T3>) {}
-
 fun main() {
-    <caret>doStuff<A1, A1, A1>()
-    <caret>doStuff<A3, A2, A4>()
-    <caret>doStuff<A5, A5, A5>()
+    TC.<caret>doStuff<A1, A1, A1>()
+    TC.<caret>doStuff<A3, A2, A4>()
+    TC.<caret>doStuff<A5, A5, A5>()
 }

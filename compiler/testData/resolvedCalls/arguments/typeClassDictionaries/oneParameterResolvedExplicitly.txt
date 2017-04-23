@@ -9,7 +9,7 @@ object TCMember : TC<Double> {
     override fun doStuff(t: Double) {}
 }
 
-fun <T> doStuff(dictionary: TC<T>, t: T) = dictionary.doStuff(t)
+fun <T, C: TC<T>> doStuff(t: T) = TC.doStuff(t)
 
 fun main() {
     val d: Double = 0.0
@@ -19,8 +19,8 @@ fun main() {
 
 Resolved call:
 
-Candidate descriptor: fun <T> doStuff(dictionary: TC<T>, t: T): Unit defined in test
-Resulting descriptor: fun <T> doStuff(dictionary: TC<Double>, t: Double): Unit defined in test
+Candidate descriptor: fun <T, C : TC<T>> doStuff(_dictionary_0: TC<T>, t: T): Unit defined in test
+Resulting descriptor: fun <T, C : TC<Double>> doStuff(_dictionary_0: TC<Double>, t: Double): Unit defined in test
 
 Explicit receiver kind = NO_EXPLICIT_RECEIVER
 Dispatch receiver = NO_RECEIVER
@@ -32,5 +32,5 @@ SUCCESS  t : Double = d
 
 Resolved value arguments mapping:
 
-SUCCESS  dictionary : TC<Double> = test.TCMember
+SUCCESS  _dictionary_0 : TC<Double> = test.TCMember
 SUCCESS  t : Double = d

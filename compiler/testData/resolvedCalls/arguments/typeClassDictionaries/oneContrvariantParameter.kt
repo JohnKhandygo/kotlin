@@ -19,7 +19,7 @@ object A2Member : TC<A2> {
     override fun doStuff(): A2 = A2()
 }
 
-fun <T> doStuff(dictionary: TC<in T>): T = dictionary.doStuff()
+fun <T, C: TC<in T>> doStuff(): T = TC.doStuff()
 
 fun main() {
     <caret>doStuff<A1>()
