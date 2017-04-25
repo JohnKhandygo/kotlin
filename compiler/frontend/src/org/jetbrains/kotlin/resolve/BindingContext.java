@@ -260,7 +260,7 @@ public interface BindingContext {
     WritableSlice<KtFile, PackageFragmentDescriptor> FILE_TO_PACKAGE_FRAGMENT = Slices.createSimpleSlice();
     WritableSlice<FqName, Collection<KtFile>> PACKAGE_TO_FILES = Slices.createSimpleSlice();
 
-    WritableSlice<ClassifierDescriptor, Map<List<KotlinType>, ClassDescriptor>> TYPECLASS_IMPLEMENTATIONS = Slices.createSimpleSlice();
+    WritableSlice<ClassifierDescriptor, TypeClassImplementations> TYPECLASS_IMPLEMENTATIONS = Slices.createSimpleSlice();
     WritableSlice<FunctionDescriptor, FunctionDescriptor> TYPE_CLASS_FUNCTION_DELEGATIONS = Slices.createSimpleSlice();
 
     @SuppressWarnings("UnusedDeclaration")

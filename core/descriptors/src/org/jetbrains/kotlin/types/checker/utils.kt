@@ -101,14 +101,14 @@ private fun TypeConstructor.debugInfo() = buildString {
     }
 }
 
-fun filterSuperTypesAndOrder(
+fun <T: KotlinType> filterSuperTypesAndOrder(
         subtype: KotlinType,
-        supertypes: Set<KotlinType>
-): List<Set<KotlinType>> {
+        supertypes: Set<T>
+): List<Set<T>> {
     val queue = ArrayDeque<SubtypePathNode>()
     queue.add(SubtypePathNode(subtype, null, 0))
 
-    val typesHierarchy = mutableListOf<MutableSet<KotlinType>>()
+    val typesHierarchy = mutableListOf<MutableSet<T>>()
     var lastResultLevel = -1
     while (!queue.isEmpty()) {
         val lastPathNode = queue.poll()
@@ -127,7 +127,10 @@ fun filterSuperTypesAndOrder(
                                          "supertype: ${supertypeConstructor.debugInfo()} \n")
                 }
 
-                val resultType = TypeUtils.makeNullableAsSpecified(supertype, shouldBeMarkedAsNullable)
+                if (supertype.isMarkedNullable != shouldBeMarkedAsNullable) {
+                    continue
+                }
+                val resultType = supertype
                 if (lastPathNode.level > lastResultLevel) {
                     typesHierarchy.add(mutableSetOf(resultType))
                     lastResultLevel = lastPathNode.level
@@ -146,16 +149,16 @@ fun filterSuperTypesAndOrder(
     return typesHierarchy
 }
 
-fun filterSubTypesAndOrder(
-        subtypes: Set<KotlinType>,
+fun <T: KotlinType> filterSubTypesAndOrder(
+        subtypes: Set<T>,
         supertype: KotlinType
-): List<Set<KotlinType>> {
+): List<Set<T>> {
     val queue = ArrayDeque<SubtypePathNode>()
     for (subtype in subtypes) {
         queue.add(SubtypePathNode(subtype, null, 0))
     }
 
-    val typesHierarchy = mutableListOf<MutableSet<KotlinType>>()
+    val typesHierarchy = mutableListOf<MutableSet<T>>()
     var lastResultLevel = -1
     while (!queue.isEmpty()) {
         val lastPathNode = queue.poll()
@@ -180,7 +183,10 @@ fun filterSubTypesAndOrder(
                 currentPathNode = currentPathNode.previous
             }
             //EK: TODO investigate nullability on this
-            val resultType = TypeUtils.makeNullableAsSpecified(initialSubtype, shouldBeMarkedAsNullable)
+            if (initialSubtype.isMarkedNullable != shouldBeMarkedAsNullable) {
+                continue
+            }
+            val resultType = initialSubtype as T
             if (lastPathNode.level > lastResultLevel) {
                 typesHierarchy.add(mutableSetOf(resultType))
                 lastResultLevel = lastPathNode.level
@@ -198,16 +204,16 @@ fun filterSubTypesAndOrder(
     return typesHierarchy
 }
 
-fun filterEqualTypes(
+fun <T: KotlinType> filterEqualTypes(
         type: KotlinType,
-        toChooseFrom: Set<KotlinType>
-) : Set<KotlinType> {
-    val equalTypes = mutableSetOf<KotlinType>()
+        toChooseFrom: Set<T>
+) : Set<T> {
+    val equalTypes = mutableSetOf<T>()
     val constructor = type.constructor
-    for (type in toChooseFrom) {
-        val supertypeConstructor = type.constructor
-        if (constructor == supertypeConstructor) {
-            equalTypes.add(type)
+    for (typeToConsider in toChooseFrom) {
+        val supertypeConstructor = typeToConsider.constructor
+        if (constructor == supertypeConstructor && typeToConsider.isMarkedNullable == type.isMarkedNullable) {
+            equalTypes.add(typeToConsider)
         }
     }
     return equalTypes

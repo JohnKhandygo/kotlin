@@ -17,7 +17,6 @@
 package org.jetbrains.kotlin.resolve;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.intellij.openapi.util.Pair;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
@@ -43,7 +42,6 @@ import org.jetbrains.kotlin.util.slicedMap.*;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 import static java.lang.String.format;
 import static org.jetbrains.kotlin.diagnostics.Errors.AMBIGUOUS_LABEL;
@@ -265,22 +263,23 @@ public class BindingContextUtils {
             @NotNull KotlinType typeClassType,
             @NotNull ClassDescriptor implementationClassDescriptor
     ) {
-        ClassifierDescriptor typeClassDescriptor = typeClassType.getConstructor().getDeclarationDescriptor();
-        Map<List<KotlinType>, ClassDescriptor> storedImplementations = bindingTrace.get(TYPECLASS_IMPLEMENTATIONS, typeClassDescriptor);
-        Map<List<KotlinType>, ClassDescriptor> knownImplementations = storedImplementations == null ?
-                                                                      Maps.<List<KotlinType>, ClassDescriptor>newHashMap() :
-                                                                      storedImplementations;
+        //EK: TODO check properly
+        ClassDescriptor typeClassDescriptor = (ClassDescriptor) typeClassType.getConstructor().getDeclarationDescriptor();
+        TypeClassImplementations storedImplementations = bindingTrace.get(TYPECLASS_IMPLEMENTATIONS, typeClassDescriptor);
+        TypeClassImplementations knownImplementations = storedImplementations == null
+                                                        ? TypeClassImplementations.Companion.forDescriptor(bindingTrace, typeClassDescriptor)
+                                                        : storedImplementations;
         List<KotlinType> members = Lists.newArrayList();
         for (TypeProjection projection : typeClassType.getArguments()) {
             members.add(projection.getType());
         }
-        if (knownImplementations.containsKey(members)) {
+        boolean hasNoMappingBefore = knownImplementations.addMapping(members, implementationClassDescriptor);
+        if (!hasNoMappingBefore) {
             //EK: TODO genrate warnings!
             throw new RuntimeException(
                     format("There is also exists an implementation for typeclass %s and members %s.",
                            typeClassDescriptor, Arrays.toString(members.toArray())));
         }
-        knownImplementations.put(members, implementationClassDescriptor);
         bindingTrace.record(TYPECLASS_IMPLEMENTATIONS, typeClassDescriptor, knownImplementations);
     }
 }

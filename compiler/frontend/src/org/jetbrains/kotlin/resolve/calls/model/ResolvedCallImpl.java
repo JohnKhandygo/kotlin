@@ -16,9 +16,7 @@
 
 package org.jetbrains.kotlin.resolve.calls.model;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.SmartList;
 import org.jetbrains.annotations.NotNull;
@@ -26,11 +24,10 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.descriptors.*;
 import org.jetbrains.kotlin.psi.Call;
 import org.jetbrains.kotlin.psi.KtExpression;
-import org.jetbrains.kotlin.psi.KtPsiFactory;
 import org.jetbrains.kotlin.psi.ValueArgument;
 import org.jetbrains.kotlin.resolve.BindingContext;
 import org.jetbrains.kotlin.resolve.DelegatingBindingTrace;
-import org.jetbrains.kotlin.resolve.DescriptorUtils;
+import org.jetbrains.kotlin.resolve.TypeClassImplementations;
 import org.jetbrains.kotlin.resolve.calls.callResolverUtil.CallResolverUtilKt;
 import org.jetbrains.kotlin.resolve.calls.inference.ConstraintSystem;
 import org.jetbrains.kotlin.resolve.calls.results.ResolutionStatus;
@@ -40,7 +37,6 @@ import org.jetbrains.kotlin.resolve.calls.tasks.TracingStrategy;
 import org.jetbrains.kotlin.resolve.calls.util.CallMaker;
 import org.jetbrains.kotlin.resolve.scopes.receivers.ReceiverValue;
 import org.jetbrains.kotlin.types.*;
-import org.jetbrains.kotlin.types.checker.UtilsKt;
 
 import java.util.*;
 
@@ -224,28 +220,21 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
             ValueParameterDescriptor substitutedVersion = substitutedParameters.get(entry.getKey().getIndex());
             assert substitutedVersion != null : entry.getKey();
             ClassifierDescriptor typeDeclaration = substitutedVersion.getType().getConstructor().getDeclarationDescriptor();
-            if (DescriptorUtils.isTypeClass(typeDeclaration)) {
-                ResolvedValueArgument oldResolvedValue = entry.getValue();
-                List<ValueArgument> oldValueArguments = oldResolvedValue.getArguments();
-                if (oldValueArguments.size() != 1) {
-                    throw new RuntimeException("Expecting old value for typeclass parameters has exactly one argument.");
-                }
-                ValueArgument oldValueArgument = oldValueArguments.get(0);
-                if (argumentToParameterMap.get(oldValueArgument).getStatus() == ArgumentMatchStatus.IMPLICIT_UNINFERRED_ARGUMENT) {
-                    ValueArgument newValue = getTypeClassImplementationAsArgument(substitutedVersion,
-                                                                                  typeDeclaration,
-                                                                                  oldValueArgument);
-                    ArgumentMatchImpl match = argumentToParameterMap.remove(oldValueArgument);
-                    argumentToParameterMap.put(newValue, match);
-                    valueArguments.put(substitutedVersion, new ExpressionValueArgument(newValue));
-                }
-                else {
-                    valueArguments.put(substitutedVersion, entry.getValue());
-                }
-            } else {
+            ResolvedValueArgument oldResolvedValue = entry.getValue();
+            List<ValueArgument> oldValueArguments = oldResolvedValue.getArguments();
+            if (oldValueArguments.size() != 1) {
                 valueArguments.put(substitutedVersion, entry.getValue());
             }
-            //valueArguments.put(substitutedVersion, entry.getValue());
+            ValueArgument oldValueArgument = oldValueArguments.get(0);
+            if (argumentToParameterMap.get(oldValueArgument).getStatus() == ArgumentMatchStatus.IMPLICIT_UNINFERRED_ARGUMENT) {
+                ValueArgument newValueArgument = getTypeClassImplementationAsArgument(substitutedVersion, typeDeclaration);
+                ArgumentMatchImpl match = argumentToParameterMap.remove(oldValueArgument);
+                argumentToParameterMap.put(newValueArgument, match);
+                valueArguments.put(substitutedVersion, new ExpressionValueArgument(newValueArgument));
+            }
+            else {
+                valueArguments.put(substitutedVersion, entry.getValue());
+            }
         }
 
         Collection<Map.Entry<ValueArgument, ArgumentMatchImpl>> unsubstitutedArgumentMappings =
@@ -264,123 +253,16 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
     @NotNull
     private ValueArgument getTypeClassImplementationAsArgument(
             ValueParameterDescriptor substituted,
-            ClassifierDescriptor typeclassDeclaration,
-            ValueArgument oldValueArgument
+            ClassifierDescriptor typeclassDeclaration
     ) {
-        Map<List<KotlinType>, ClassDescriptor> knownImplementations =
+        TypeClassImplementations knownImplementations =
                 trace.get(BindingContext.TYPECLASS_IMPLEMENTATIONS, typeclassDeclaration);
         if (knownImplementations == null) {
+            //EK: TODO warnings
             throw new RuntimeException("No known implementations for type class " + typeclassDeclaration.getName());
         }
-
-        Set<KotlinType> knownMembers = Sets.newHashSet();
-        for (List<KotlinType> knownMember : knownImplementations.keySet()) {
-            knownMembers.add(new CompositeType(knownMember, 0));
-        }
-
-        @SuppressWarnings("unchecked")
-        List<Set<KotlinType>> zeroApproximationSolution = Lists.<Set<KotlinType>>newArrayList(knownMembers);
-        Set<KotlinType> solutions = findNearestSolution(substituted.getType().getArguments(),
-                                                        typeclassDeclaration.getTypeConstructor().getParameters(),
-                                                        zeroApproximationSolution,
-                                                        0);
-        if (solutions.isEmpty()) {
-            //EK: TODO warnings
-            throw new RuntimeException("Found no solutions for type class resolution.");
-        }
-        if (solutions.size() > 1) {
-            //EK: TODO warnings
-            throw new RuntimeException("Found more than one solution for type class resolution.");
-        }
-        CompositeType theOnlySolution = (CompositeType) solutions.iterator().next();
-
-        List<KotlinType> member = theOnlySolution.getTypes();
-        ClassDescriptor implementationDescriptor = knownImplementations.get(member);
-        //EK: TODO warnings... below statement is not true anymore.
-        //EK: TODO if there is no implementation we should look up scope for dictionary from outer entity (e.g. function).
-        if (implementationDescriptor == null) {
-            throw new RuntimeException(
-                    "No known implementations for typeclass " + typeclassDeclaration.getName() + " and member " + member);
-        }
-        KtExpression oldValueExpression = oldValueArgument.getArgumentExpression();
-        KtExpression newArgumentExpression = new KtPsiFactory(oldValueExpression.getProject())
-                .createExpression(DescriptorUtils.getFqName(implementationDescriptor).asString());
-        return CallMaker.makeValueArgument(newArgumentExpression);
-    }
-
-    private static Set<KotlinType> findNearestSolution(
-            List<TypeProjection> typeProjections,
-            List<TypeParameterDescriptor> typeParameters,
-            List<Set<KotlinType>> orderedSolutions,
-            int i
-    ) {
-        for (Set<KotlinType> solution : orderedSolutions) {
-            for (KotlinType type : solution) {
-                if (type instanceof CompositeType) {
-                    ((CompositeType) type).setRepresentativeType(i);
-                }
-            }
-            List<Set<KotlinType>> thisLevelOrderedSolutions = findBestSolutionsForProjection(solution,
-                                                                                             typeProjections.get(i),
-                                                                                             typeParameters.get(i));
-            if (thisLevelOrderedSolutions.isEmpty()) {
-                continue;
-            }
-            if (i == typeProjections.size() - 1) {
-                return thisLevelOrderedSolutions.get(0);
-            }
-            Set<KotlinType> bestFittingTypes = findNearestSolution(typeProjections,
-                                                                   typeParameters,
-                                                                   thisLevelOrderedSolutions,
-                                                                   i + 1);
-            if (!bestFittingTypes.isEmpty()) {
-                return bestFittingTypes;
-            }
-        }
-        return Collections.emptySet();
-    }
-
-    @NotNull
-    private static List<Set<KotlinType>> findBestSolutionsForProjection(
-            Set<KotlinType> bestFittingSoFarTypes,
-            TypeProjection projection,
-            TypeParameterDescriptor typeParameterDescriptor
-    ) {
-        Variance declaredVariance = typeParameterDescriptor.getVariance();
-        Variance usedVariance = projection.getProjectionKind();
-        Variance resolutionVariance = getResolutionVarianve(declaredVariance, usedVariance);
-        switch (resolutionVariance) {
-            case IN_VARIANCE:
-                return UtilsKt.filterSuperTypesAndOrder(projection.getType(), bestFittingSoFarTypes);
-            case INVARIANT:
-                List<Set<KotlinType>> result = Lists.newArrayList();
-                result.add(UtilsKt.filterEqualTypes(projection.getType(), bestFittingSoFarTypes));
-                return result;
-            case OUT_VARIANCE:
-                return UtilsKt.filterSubTypesAndOrder(bestFittingSoFarTypes, projection.getType());
-            default:
-                throw new RuntimeException("Unexpected variance type " + projection.getProjectionKind() + ".");
-                
-        }
-    }
-
-    private static Variance getResolutionVarianve(Variance declaredVariance, Variance usedVariance) {
-        switch (usedVariance) {
-            case IN_VARIANCE:
-                if(declaredVariance.getAllowsInPosition()) {
-                    return usedVariance;
-                }
-                throw new RuntimeException("Cannot use variance " + usedVariance + " when declared is " + declaredVariance + ".");
-            case INVARIANT:
-                return declaredVariance;
-            case OUT_VARIANCE:
-                if(declaredVariance.getAllowsOutPosition()) {
-                    return usedVariance;
-                }
-                throw new RuntimeException("Cannot use variance " + usedVariance + " when declared is " + declaredVariance + ".");
-            default:
-                throw new RuntimeException("Unknown used variance " + usedVariance + ".");
-        }
+        KtExpression expression = knownImplementations.getImplementationInstanceExpression(substituted.getType().getArguments());
+        return CallMaker.makeValueArgument(expression);
     }
 
     @Override
