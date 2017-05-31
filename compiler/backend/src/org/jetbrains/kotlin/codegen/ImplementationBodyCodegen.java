@@ -417,14 +417,16 @@ public class ImplementationBodyCodegen extends ClassBodyCodegen {
             }
 
             Method originalCallableDescriptor = typeMapper.mapAsmMethod(originalTypeClassFunction);
-            iv.invokespecial(
+            iv.invokeinterface(
                     containingClassType.getInternalName(),
                     originalCallableDescriptor.getName(),
-                    originalCallableDescriptor.getDescriptor(),
-                    false);
+                    originalCallableDescriptor.getDescriptor());
 
-            iv.areturn(mappedCallableDescriptor.getReturnType());
-
+            iv.areturn(originalCallableDescriptor.getReturnType());
+            StackValue.coerce(
+                    originalCallableDescriptor.getReturnType(),
+                    mappedCallableDescriptor.getReturnType(),
+                    iv);
             FunctionCodegen.endVisit(mv, mappedCallableDescriptor.getName(), myClass);
         }
     }

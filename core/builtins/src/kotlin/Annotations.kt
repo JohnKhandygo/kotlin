@@ -139,9 +139,9 @@ public annotation class DslMarker
 public annotation class PublishedApi
 
 /**
- * Specifies that annotated class declares type class
+ * Specifies that annotated class declares type class or annotated type variable declares qualified type in terms of type classes
  */
-@Target(CLASS)
+@Target(CLASS, TYPE_PARAMETER)
 @Retention(AnnotationRetention.BINARY)
 @MustBeDocumented
 @SinceKotlin("1.1")

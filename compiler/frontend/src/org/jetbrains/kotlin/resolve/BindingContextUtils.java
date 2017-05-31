@@ -261,13 +261,14 @@ public class BindingContextUtils {
     public static void recordTypeClassImplementation(
             @NotNull BindingTrace bindingTrace,
             @NotNull KotlinType typeClassType,
-            @NotNull ClassDescriptor implementationClassDescriptor
+            @NotNull ClassDescriptor implementationClassDescriptor,
+            @NotNull KtPsiFactory factory
     ) {
         //EK: TODO check properly
         ClassDescriptor typeClassDescriptor = (ClassDescriptor) typeClassType.getConstructor().getDeclarationDescriptor();
         TypeClassImplementations storedImplementations = bindingTrace.get(TYPECLASS_IMPLEMENTATIONS, typeClassDescriptor);
         TypeClassImplementations knownImplementations = storedImplementations == null
-                                                        ? TypeClassImplementations.Companion.forDescriptor(bindingTrace, typeClassDescriptor)
+                                                        ? TypeClassImplementations.Companion.forDescriptor(bindingTrace, typeClassDescriptor, factory)
                                                         : storedImplementations;
         List<KotlinType> members = Lists.newArrayList();
         for (TypeProjection projection : typeClassType.getArguments()) {

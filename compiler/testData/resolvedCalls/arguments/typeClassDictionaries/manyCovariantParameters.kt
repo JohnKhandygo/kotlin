@@ -17,7 +17,7 @@ object MiddleMember: TC<A2, A3, A4>
 
 object LowestMember : TC<A5, A5, A5>
 
-fun <T1, T2, T3, C: TC<T1, T2, out T3>> doStuff() {}
+fun <T1, T2, T3, @TypeClass C: TC<T1, T2, out T3>> doStuff() {}
 
 fun main() {
     <caret>doStuff<A1, A1, A1>()

@@ -22,11 +22,14 @@ import com.intellij.util.SmartList;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.descriptors.*;
+import org.jetbrains.kotlin.descriptors.impl.AnonymousFunctionDescriptor;
 import org.jetbrains.kotlin.psi.Call;
 import org.jetbrains.kotlin.psi.KtExpression;
+import org.jetbrains.kotlin.psi.KtPsiFactory;
 import org.jetbrains.kotlin.psi.ValueArgument;
 import org.jetbrains.kotlin.resolve.BindingContext;
 import org.jetbrains.kotlin.resolve.DelegatingBindingTrace;
+import org.jetbrains.kotlin.resolve.DescriptorUtils;
 import org.jetbrains.kotlin.resolve.TypeClassImplementations;
 import org.jetbrains.kotlin.resolve.calls.callResolverUtil.CallResolverUtilKt;
 import org.jetbrains.kotlin.resolve.calls.inference.ConstraintSystem;
@@ -35,6 +38,8 @@ import org.jetbrains.kotlin.resolve.calls.tasks.ExplicitReceiverKind;
 import org.jetbrains.kotlin.resolve.calls.tasks.ResolutionCandidate;
 import org.jetbrains.kotlin.resolve.calls.tasks.TracingStrategy;
 import org.jetbrains.kotlin.resolve.calls.util.CallMaker;
+import org.jetbrains.kotlin.resolve.scopes.HierarchicalScope;
+import org.jetbrains.kotlin.resolve.scopes.LexicalScope;
 import org.jetbrains.kotlin.resolve.scopes.receivers.ReceiverValue;
 import org.jetbrains.kotlin.types.*;
 
@@ -224,12 +229,19 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
             List<ValueArgument> oldValueArguments = oldResolvedValue.getArguments();
             if (oldValueArguments.size() != 1) {
                 valueArguments.put(substitutedVersion, entry.getValue());
+                continue ;
             }
             ValueArgument oldValueArgument = oldValueArguments.get(0);
             if (argumentToParameterMap.get(oldValueArgument).getStatus() == ArgumentMatchStatus.IMPLICIT_UNINFERRED_ARGUMENT) {
-                ValueArgument newValueArgument = getTypeClassImplementationAsArgument(substitutedVersion, typeDeclaration);
-                ArgumentMatchImpl match = argumentToParameterMap.remove(oldValueArgument);
-                argumentToParameterMap.put(newValueArgument, match);
+                KtExpression outerIfAny = findVariableExpressionWithTypeFromOuter(substitutedVersion.getType());
+                ValueArgument newValueArgument;
+                if (outerIfAny == null) {
+                    newValueArgument = getTypeClassImplementationAsArgument(substitutedVersion, typeDeclaration);
+                } else {
+                    newValueArgument = CallMaker.makeValueArgument(outerIfAny);
+                }
+                argumentToParameterMap.remove(oldValueArgument);
+                argumentToParameterMap.put(newValueArgument, new ArgumentMatchImpl(entry.getKey()));
                 valueArguments.put(substitutedVersion, new ExpressionValueArgument(newValueArgument));
             }
             else {
@@ -250,13 +262,46 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
         }
     }
 
+    @Nullable
+    private KtExpression findVariableExpressionWithTypeFromOuter(KotlinType givenType) {
+        Collection<ValueParameterDescriptor> valueParameters = getValueParameterDescriptorsFromOuter();
+        //EK: TODO handle multiple solutions
+        for (ValueParameterDescriptor valueParameter : valueParameters) {
+            if (DescriptorUtils.isTypeClassDictionary(valueParameter)) {
+                KotlinType contributedVariableType = valueParameter.getType();
+                if (contributedVariableType.getConstructor() == givenType.getConstructor()) {
+                    return new KtPsiFactory(call.getCallElement().getProject())
+                            .createExpression(valueParameter.getName().getIdentifier());
+                }
+            }
+        }
+        return null;
+    }
+
+    @NotNull
+    private Collection<ValueParameterDescriptor> getValueParameterDescriptorsFromOuter() {
+        HierarchicalScope calleeScope = trace.get(BindingContext.LEXICAL_SCOPE, call.getCalleeExpression());
+        while (calleeScope != null) {
+            DeclarationDescriptor calleeScopeOwner = ((LexicalScope) calleeScope).getOwnerDescriptor();
+            if (calleeScopeOwner instanceof AnonymousFunctionDescriptor) {
+                calleeScope = calleeScope.getParent();
+                continue ;
+            }
+            if (calleeScopeOwner instanceof CallableDescriptor) {
+                return ((CallableDescriptor) calleeScopeOwner).getValueParameters();
+            } else {
+                break ;
+            }
+        }
+        return Collections.emptyList();
+    }
+
     @NotNull
     private ValueArgument getTypeClassImplementationAsArgument(
             ValueParameterDescriptor substituted,
             ClassifierDescriptor typeclassDeclaration
     ) {
-        TypeClassImplementations knownImplementations =
-                trace.get(BindingContext.TYPECLASS_IMPLEMENTATIONS, typeclassDeclaration);
+        TypeClassImplementations knownImplementations = trace.get(BindingContext.TYPECLASS_IMPLEMENTATIONS, typeclassDeclaration);
         if (knownImplementations == null) {
             //EK: TODO warnings
             throw new RuntimeException("No known implementations for type class " + typeclassDeclaration.getName());

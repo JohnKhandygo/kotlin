@@ -17,7 +17,7 @@ object MiddleMember: TC<A2, A3, A4>
 
 object LowestMember : TC<A5, A5, A5>
 
-fun <T1, T2, T3, C : TC<in T1, T2, in T3>> doStuff() {}
+fun <T1, T2, T3, @TypeClass C : TC<in T1, T2, in T3>> doStuff() {}
 
 fun main() {
     <caret>doStuff<A1, A1, A1>()
@@ -28,8 +28,8 @@ fun main() {
 
 Resolved call:
 
-Candidate descriptor: fun <T1, T2, T3, C : TC<in T1, T2, in T3>> doStuff(_dictionary_0: TC<in T1, T2, in T3>): Unit defined in test
-Resulting descriptor: fun <T1, T2, T3, C : TC<in A1, A1, in A1>> doStuff(_dictionary_0: TC<in A1, A1, in A1>): Unit defined in test
+Candidate descriptor: fun <T1, T2, T3> doStuff(_dictionary_0: TC<in T1, T2, in T3>): Unit defined in test
+Resulting descriptor: fun <T1, T2, T3> doStuff(_dictionary_0: TC<in A1, A1, in A1>): Unit defined in test
 
 Explicit receiver kind = NO_EXPLICIT_RECEIVER
 Dispatch receiver = NO_RECEIVER
@@ -42,8 +42,8 @@ SUCCESS  _dictionary_0 : TC<in A1, A1, in A1> = test.HighestMember
 
 Resolved call:
 
-Candidate descriptor: fun <T1, T2, T3, C : TC<in T1, T2, in T3>> doStuff(_dictionary_0: TC<in T1, T2, in T3>): Unit defined in test
-Resulting descriptor: fun <T1, T2, T3, C : TC<in A5, A4, in A4>> doStuff(_dictionary_0: TC<in A5, A4, in A4>): Unit defined in test
+Candidate descriptor: fun <T1, T2, T3> doStuff(_dictionary_0: TC<in T1, T2, in T3>): Unit defined in test
+Resulting descriptor: fun <T1, T2, T3> doStuff(_dictionary_0: TC<in A5, A4, in A4>): Unit defined in test
 
 Explicit receiver kind = NO_EXPLICIT_RECEIVER
 Dispatch receiver = NO_RECEIVER
@@ -56,8 +56,8 @@ SUCCESS  _dictionary_0 : TC<in A5, A4, in A4> = test.MiddleMember
 
 Resolved call:
 
-Candidate descriptor: fun <T1, T2, T3, C : TC<in T1, T2, in T3>> doStuff(_dictionary_0: TC<in T1, T2, in T3>): Unit defined in test
-Resulting descriptor: fun <T1, T2, T3, C : TC<in A1, A4, in A1>> doStuff(_dictionary_0: TC<in A1, A4, in A1>): Unit defined in test
+Candidate descriptor: fun <T1, T2, T3> doStuff(_dictionary_0: TC<in T1, T2, in T3>): Unit defined in test
+Resulting descriptor: fun <T1, T2, T3> doStuff(_dictionary_0: TC<in A1, A4, in A1>): Unit defined in test
 
 Explicit receiver kind = NO_EXPLICIT_RECEIVER
 Dispatch receiver = NO_RECEIVER

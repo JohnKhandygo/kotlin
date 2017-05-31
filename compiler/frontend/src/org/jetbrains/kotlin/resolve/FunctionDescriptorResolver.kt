@@ -21,7 +21,7 @@ import org.jetbrains.kotlin.builtins.*
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.descriptors.annotations.Annotations
 import org.jetbrains.kotlin.descriptors.annotations.AnnotationsImpl
-import org.jetbrains.kotlin.descriptors.annotations.createImplicitTypeClassDictionaryAnnotation
+import org.jetbrains.kotlin.descriptors.annotations.createTypeClassDictionaryAnnotation
 import org.jetbrains.kotlin.descriptors.impl.*
 import org.jetbrains.kotlin.diagnostics.DiagnosticUtils
 import org.jetbrains.kotlin.diagnostics.Errors.*
@@ -143,9 +143,9 @@ class FunctionDescriptorResolver(
         val headerScope = LexicalWritableScope(scope, functionDescriptor, true,
                                                TraceBasedLocalRedeclarationChecker(trace, overloadChecker), LexicalScopeKind.FUNCTION_HEADER)
 
-        val typeParameterDescriptors = descriptorResolver.
+        val allTypeParameterDescriptors = descriptorResolver.
                 resolveTypeParametersForDescriptor(functionDescriptor, headerScope, scope, function.typeParameters, trace)
-        descriptorResolver.resolveGenericBounds(function, functionDescriptor, headerScope, typeParameterDescriptors, trace)
+        descriptorResolver.resolveGenericBounds(function, functionDescriptor, headerScope, allTypeParameterDescriptors, trace)
 
         val receiverTypeRef = function.receiverTypeReference
         val receiverType =
@@ -158,7 +158,7 @@ class FunctionDescriptorResolver(
 
 
         val valueParameterDescriptors = createValueParameterDescriptors(function, functionDescriptor, headerScope, trace,
-                                                                        expectedFunctionType, typeParameterDescriptors)
+                                                                        expectedFunctionType, allTypeParameterDescriptors)
 
         headerScope.freeze()
 
@@ -167,10 +167,11 @@ class FunctionDescriptorResolver(
         val visibility = resolveVisibilityFromModifiers(function, getDefaultVisibility(function, containingDescriptor))
         val modality = resolveMemberModalityFromModifiers(function, getDefaultModality(containingDescriptor, visibility, function.hasBody()),
                                                           trace.bindingContext, containingDescriptor)
+        val typeParametersWithoutQualifiedTypes = allTypeParameterDescriptors.filterNot { DescriptorUtils.isQualifiedType(it) }
         functionDescriptor.initialize(
                 receiverType,
                 getDispatchReceiverParameterIfNeeded(containingDescriptor),
-                typeParameterDescriptors,
+                typeParametersWithoutQualifiedTypes,
                 valueParameterDescriptors,
                 returnType,
                 modality,
@@ -337,23 +338,26 @@ class FunctionDescriptorResolver(
 
         var additionalParametersCount = 0
         for (typeParameter in typeParameters) {
-            for (upperBound in typeParameter.upperBounds) {
-                if (TypeUtils.isTypeClass(upperBound)) {
-                    val typeClassValueParameterDescriptor = ValueParameterDescriptorImpl(
-                            functionDescriptor,
-                            null,
-                            additionalParametersCount,
-                            AnnotationsImpl(listOf(DefaultBuiltIns.Instance.createImplicitTypeClassDictionaryAnnotation())),
-                            Name.identifier("_dictionary_" + additionalParametersCount),
-                            upperBound,
-                            false,
-                            false,
-                            false,
-                            null,
-                            SourceElement.NO_SOURCE)
-                    parameterScope.addVariableDescriptor(typeClassValueParameterDescriptor)
-                    result.add(typeClassValueParameterDescriptor)
-                    ++additionalParametersCount
+            if (DescriptorUtils.isQualifiedType(typeParameter)) {
+                for (upperBound in typeParameter.upperBounds) {
+                    if (TypeUtils.isTypeClass(upperBound)) {
+                        val typeClassValueParameterDescriptor = ValueParameterDescriptorImpl(
+                                functionDescriptor,
+                                null,
+                                additionalParametersCount,
+                                AnnotationsImpl(listOf(DefaultBuiltIns.Instance.createTypeClassDictionaryAnnotation())),
+                                //Name.special("<dictionary${additionalParametersCount}>"),
+                                Name.identifier("_dictionary_${additionalParametersCount}"),
+                                upperBound,
+                                false,
+                                false,
+                                false,
+                                null,
+                                SourceElement.NO_SOURCE)
+                        parameterScope.addVariableDescriptor(typeClassValueParameterDescriptor)
+                        result.add(typeClassValueParameterDescriptor)
+                        ++additionalParametersCount
+                    }
                 }
             }
         }

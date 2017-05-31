@@ -53,6 +53,7 @@ public class DescriptorUtils {
     private static final FqName SYNCHRONIZED = new FqName("kotlin.jvm.Synchronized");
     public static final FqName COROUTINES_PACKAGE_FQ_NAME = new FqName("kotlin.coroutines.experimental");
     public static final FqName CONTINUATION_INTERFACE_FQ_NAME = COROUTINES_PACKAGE_FQ_NAME.child(Name.identifier("Continuation"));
+    private static final FqName TYPE_CLASS_DICTIONARY_ANNOTATION_FQ_NAME = new FqName("kotlin.internal.TypeClassDictionary");
 
     private DescriptorUtils() {
     }
@@ -635,5 +636,19 @@ public class DescriptorUtils {
 
     public static boolean isTypeClassCompanion(ClassDescriptor descriptor) {
         return descriptor.isCompanionObject() && isTypeClass(descriptor.getContainingDeclaration());
+    }
+
+    public static boolean isQualifiedType(TypeParameterDescriptor descriptor) {
+        if (descriptor == null) {
+            return false;
+        }
+        return descriptor.getAnnotations().findAnnotation(KotlinBuiltIns.FQ_NAMES.typeClass) != null;
+    }
+
+    public static boolean isTypeClassDictionary(ValueParameterDescriptor descriptor) {
+        if (descriptor == null) {
+            return false;
+        }
+        return descriptor.getAnnotations().findAnnotation(TYPE_CLASS_DICTIONARY_ANNOTATION_FQ_NAME) != null;
     }
 }

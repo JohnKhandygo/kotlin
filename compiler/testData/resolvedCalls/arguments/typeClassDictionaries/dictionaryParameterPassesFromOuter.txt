@@ -9,8 +9,8 @@ object TCMember : TC<Double> {
     override fun doStuff(t: Double) {}
 }
 
-fun <T, C : TC<T>> doStuff(t: T) = TC.<caret>doStuff(t)
-fun <T, C : TC<T>> wrappedDoStuff(t: T) = doStuff(t)
+fun <T, @TypeClass C : TC<T>> doStuff(t: T) = TC.<caret>doStuff(t)
+fun <T, @TypeClass C : TC<T>> wrappedDoStuff(t: T) = doStuff(t)
 
 fun main() {
     val d: Double = 0.0
@@ -39,8 +39,8 @@ SUCCESS  t : T = t
 
 Resolved call:
 
-Candidate descriptor: fun <T, C : TC<T>> wrappedDoStuff(_dictionary_0: TC<T>, t: T): Unit defined in test
-Resulting descriptor: fun <T, C : TC<Double>> wrappedDoStuff(_dictionary_0: TC<Double>, t: Double): Unit defined in test
+Candidate descriptor: fun <T> wrappedDoStuff(_dictionary_0: TC<T>, t: T): Unit defined in test
+Resulting descriptor: fun <T> wrappedDoStuff(_dictionary_0: TC<Double>, t: Double): Unit defined in test
 
 Explicit receiver kind = NO_EXPLICIT_RECEIVER
 Dispatch receiver = NO_RECEIVER

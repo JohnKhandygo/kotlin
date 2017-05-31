@@ -5,6 +5,7 @@ public fun </*0*/ reified @kotlin.internal.PureReifiable T> arrayOfNulls(/*0*/ s
 public fun booleanArrayOf(/*0*/ vararg elements: kotlin.Boolean /*kotlin.BooleanArray*/): kotlin.BooleanArray
 public fun byteArrayOf(/*0*/ vararg elements: kotlin.Byte /*kotlin.ByteArray*/): kotlin.ByteArray
 public fun charArrayOf(/*0*/ vararg elements: kotlin.Char /*kotlin.CharArray*/): kotlin.CharArray
+public fun </*0*/ D> dictionaryOf(/*0*/ @kotlin.internal.TypeClassDictionary d: D): D
 public fun doubleArrayOf(/*0*/ vararg elements: kotlin.Double /*kotlin.DoubleArray*/): kotlin.DoubleArray
 public inline fun </*0*/ reified @kotlin.internal.PureReifiable T> emptyArray(): kotlin.Array<T>
 @kotlin.SinceKotlin(version = "1.1") public inline fun </*0*/ reified T : kotlin.Enum<T>> enumValueOf(/*0*/ name: kotlin.String): T
@@ -749,7 +750,7 @@ public open class Throwable : kotlin.Any, java.io.Serializable {
     public open fun setStackTrace(/*0*/ stackTrace: kotlin.Array<(out) java.lang.StackTraceElement!>!): kotlin.Unit
 }
 
-@kotlin.annotation.Target(allowedTargets = {AnnotationTarget.CLASS}) @kotlin.annotation.Retention(value = AnnotationRetention.BINARY) @kotlin.annotation.MustBeDocumented @kotlin.SinceKotlin(version = "1.1") public final annotation class TypeClass : kotlin.Annotation {
+@kotlin.annotation.Target(allowedTargets = {AnnotationTarget.CLASS, AnnotationTarget.TYPE_PARAMETER}) @kotlin.annotation.Retention(value = AnnotationRetention.BINARY) @kotlin.annotation.MustBeDocumented @kotlin.SinceKotlin(version = "1.1") public final annotation class TypeClass : kotlin.Annotation {
     /*primary*/ public constructor TypeClass()
 }
 

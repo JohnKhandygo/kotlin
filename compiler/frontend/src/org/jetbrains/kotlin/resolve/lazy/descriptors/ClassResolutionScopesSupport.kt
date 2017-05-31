@@ -20,7 +20,7 @@ import org.jetbrains.kotlin.builtins.DefaultBuiltIns
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.descriptors.annotations.Annotations
 import org.jetbrains.kotlin.descriptors.annotations.AnnotationsImpl
-import org.jetbrains.kotlin.descriptors.annotations.createImplicitTypeClassDictionaryAnnotation
+import org.jetbrains.kotlin.descriptors.annotations.createTypeClassDictionaryAnnotation
 import org.jetbrains.kotlin.descriptors.impl.ValueParameterDescriptorImpl
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.KtParameter
@@ -199,7 +199,7 @@ private class MappingMemberScopeForFunctions(
                         .setKind(CallableMemberDescriptor.Kind.SYNTHESIZED)
                         .setOwner(owner)
                         .setDispatchReceiverParameter(owner.getThisAsReceiverParameter())
-                        .setTypeParameters(ownerContainer.declaredTypeParameters)
+                        .setTypeParameters(it.typeParameters + ownerContainer.declaredTypeParameters)
                         .setValueParameters(extendValueParametersWithTypeClassDictionary(it, ownerContainer))
                         .build()!!
                 classContext.trace.record(BindingContext.TYPE_CLASS_FUNCTION_DELEGATIONS, mapped, it)
@@ -225,7 +225,7 @@ private class MappingMemberScopeForFunctions(
                     functionDescriptor,
                     null,
                     0,
-                    AnnotationsImpl(listOf(DefaultBuiltIns.Instance.createImplicitTypeClassDictionaryAnnotation())),
+                    AnnotationsImpl(listOf(DefaultBuiltIns.Instance.createTypeClassDictionaryAnnotation())),
                     Name.identifier("_dictionary_"),
                     KotlinTypeFactory.simpleNotNullType(
                             Annotations.EMPTY,

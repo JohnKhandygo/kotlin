@@ -28,12 +28,13 @@ import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.platform.PlatformToKotlinClassMap
 import org.jetbrains.kotlin.psi.KtImportDirective
+import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtPsiUtil
-import org.jetbrains.kotlin.psi.KtReferenceExpression
 import org.jetbrains.kotlin.resolve.*
 import org.jetbrains.kotlin.resolve.scopes.DescriptorKindFilter
 import org.jetbrains.kotlin.resolve.scopes.ImportingScope
 import org.jetbrains.kotlin.storage.StorageManager
+import org.jetbrains.kotlin.types.TypeUtils
 import org.jetbrains.kotlin.types.expressions.OperatorConventions
 import org.jetbrains.kotlin.util.collectionUtils.concat
 import org.jetbrains.kotlin.utils.Printer
@@ -105,8 +106,16 @@ class LazyImportResolver(
 
             val alias = KtPsiUtil.getAliasName(importDirective)?.identifier
             if (scope != null && alias != null) {
-                if (scope.getContributedClassifier(Name.identifier(alias), KotlinLookupLocation(importDirective)) != null) {
+                val contributedClassifier = scope.getContributedClassifier(Name.identifier(alias), KotlinLookupLocation(importDirective))
+                if (contributedClassifier != null) {
                     explicitClassImports.put(alias, importDirective)
+                    if (contributedClassifier is ClassDescriptor) {
+                        for (superType in contributedClassifier.typeConstructor.supertypes) {
+                            if (TypeUtils.isTypeClass(superType)) {
+                                BindingContextUtils.recordTypeClassImplementation(traceForImportResolve, superType, contributedClassifier, KtPsiFactory(importDirective))
+                            }
+                        }
+                    }
                 }
             }
 

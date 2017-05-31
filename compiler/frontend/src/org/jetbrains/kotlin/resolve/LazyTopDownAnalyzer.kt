@@ -209,9 +209,9 @@ class LazyTopDownAnalyzer(
 
         overloadResolver.checkOverloads(c)
 
-        bodyResolver.resolveBodies(c)
-
         resolveImportsInAllFiles(c)
+
+        bodyResolver.resolveBodies(c)
 
         ClassifierUsageChecker.check(declarations, trace, languageVersionSettings, classifierUsageCheckers)
 
@@ -220,9 +220,10 @@ class LazyTopDownAnalyzer(
 
     private fun registerAllTypeClassMembers(c: TopDownAnalysisContext) {
         for (classDescriptor in c.allClasses) {
-            for (superType in classDescriptor.typeConstructor.getSupertypes()) {
+            for (superType in classDescriptor.typeConstructor.supertypes) {
                 if (TypeUtils.isTypeClass(superType)) {
-                    BindingContextUtils.recordTypeClassImplementation(trace, superType, classDescriptor)
+                    BindingContextUtils.recordTypeClassImplementation(trace, superType, classDescriptor,
+                                                                      KtPsiFactory(DescriptorToSourceUtils.descriptorToDeclaration(superType.constructor.declarationDescriptor!!)!!))
                 }
             }
         }

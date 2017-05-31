@@ -23,28 +23,19 @@ import kotlin.collections.CollectionsKt;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.builtins.functions.FunctionInvokeDescriptor;
-import org.jetbrains.kotlin.descriptors.CallableDescriptor;
-import org.jetbrains.kotlin.descriptors.CallableMemberDescriptor;
-import org.jetbrains.kotlin.descriptors.DeclarationDescriptor;
-import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor;
-import org.jetbrains.kotlin.descriptors.annotations.AnnotationDescriptor;
+import org.jetbrains.kotlin.descriptors.*;
 import org.jetbrains.kotlin.diagnostics.Diagnostic;
-import org.jetbrains.kotlin.name.FqName;
 import org.jetbrains.kotlin.name.Name;
 import org.jetbrains.kotlin.psi.*;
-import org.jetbrains.kotlin.resolve.BindingContext;
+import org.jetbrains.kotlin.resolve.DescriptorUtils;
 import org.jetbrains.kotlin.resolve.OverrideResolver;
 import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt;
 import org.jetbrains.kotlin.resolve.calls.model.*;
 import org.jetbrains.kotlin.resolve.calls.tasks.TracingStrategy;
 import org.jetbrains.kotlin.resolve.calls.util.CallMaker;
 import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt;
-import org.jetbrains.kotlin.resolve.scopes.DescriptorKindFilter;
-import org.jetbrains.kotlin.resolve.scopes.LexicalScope;
-import org.jetbrains.kotlin.resolve.scopes.MemberScope;
-import org.jetbrains.kotlin.types.KotlinType;
-import org.jetbrains.kotlin.types.TypeUtils;
 
+import javax.swing.*;
 import java.util.*;
 
 import static org.jetbrains.kotlin.diagnostics.Errors.*;
@@ -76,6 +67,7 @@ public class ValueArgumentsToParametersMapper {
             return this;
         }
     }
+
     public static <D extends CallableDescriptor> Status mapValueArgumentsToParameters(
             @NotNull Call call,
             @NotNull TracingStrategy tracing,
@@ -90,8 +82,6 @@ public class ValueArgumentsToParametersMapper {
     }
 
     private static class Processor<D extends CallableDescriptor> {
-        private static final FqName IMPLICIT_TYPE_CLASS_DICTIONARY = new FqName("kotlin.internal.ImplicitTypeClassDictionary");
-
         private final Call call;
         private final TracingStrategy tracing;
         private final MutableResolvedCall<D> candidateCall;
@@ -278,13 +268,14 @@ public class ValueArgumentsToParametersMapper {
             boolean isArraySetMethod = call.getCallType() == Call.CallType.ARRAY_SET_METHOD;
             List<? extends ValueArgument> argumentsInParentheses = CallUtilKt.getValueArgumentsInParentheses(call);
 
+            //EK: TODO preserve any implicit parameter position?
             if (!isArraySetMethod) {
                 for (ValueParameterDescriptor parameter : parameters) {
-                    AnnotationDescriptor implicitnessAttribute = parameter.getAnnotations().findAnnotation(IMPLICIT_TYPE_CLASS_DICTIONARY);
-                    if (implicitnessAttribute == null) {
+                    if (DescriptorUtils.isTypeClassDictionary(parameter)) {
+                        state = processImplicitArgument(state, parameter);
+                    } else {
                         break ;
                     }
-                    state = processImplicitArgument(state, parameter);
                 }
             }
 
@@ -305,21 +296,9 @@ public class ValueArgumentsToParametersMapper {
                 ProcessorState state,
                 ValueParameterDescriptor parameter
         ) {
-            KotlinType parameterType = parameter.getType();
-            if (!TypeUtils.isTypeClass(parameterType)) {
-                //EK: TODO generate warnings
-                throw new RuntimeException("Non type class parameter annotated as implicit.");
-            }
-            KtExpression valueArgumentExpression = findVariableExpressionWithTypeFromOuter(parameterType);
-            if (valueArgumentExpression != null) {
-                ValueArgument argument = CallMaker.makeValueArgument(valueArgumentExpression);
-                state = processExplicitArgument(state, false, argument, false);
-            } else {
-                //EK: TODO do it with caching or smth like this to avoid every-time-creation of objects.
-                KtExpression nullExpression = new KtPsiFactory(call.getCallElement().getProject()).createExpression("null");
-                state = state.processImplicitArgument(CallMaker.makeValueArgument(nullExpression));
-            }
-            return state;
+            //EK: TODO do it with caching or smth like this to avoid every-time-creation of objects.
+            KtExpression nullExpression = new KtPsiFactory(call.getCallElement().getProject()).createExpression("null");
+            return state.processImplicitArgument(CallMaker.makeValueArgument(nullExpression));
         }
 
         private ProcessorState processExplicitArgument(
@@ -337,30 +316,6 @@ public class ValueArgumentsToParametersMapper {
             else {
                 return state.processPositionedArgument(valueArgument);
             }
-        }
-
-        @Nullable
-        private KtExpression findVariableExpressionWithTypeFromOuter(KotlinType givenType) {
-            Collection<DeclarationDescriptor> descriptors = getAllDescriptorsFromOuter();
-            //EK: TODO multiple solutions?
-            for (DeclarationDescriptor contributedDescriptor : descriptors) {
-                if (contributedDescriptor instanceof ValueParameterDescriptor) {
-                    KotlinType contributedVariableType = ((ValueParameterDescriptor) contributedDescriptor).getType();
-                    if (contributedVariableType.getConstructor() == givenType.getConstructor()) {
-                        return new KtPsiFactory(call.getCallElement().getProject())
-                                .createExpression(contributedDescriptor.getName().getIdentifier());
-                    }
-                }
-            }
-            return null;
-        }
-
-        @NotNull
-        private Collection<DeclarationDescriptor> getAllDescriptorsFromOuter() {
-            LexicalScope calleeScope = candidateCall.getTrace().get(BindingContext.LEXICAL_SCOPE, call.getCalleeExpression());
-            return calleeScope.getContributedDescriptors(
-                    DescriptorKindFilter.ALL,
-                    MemberScope.Companion.getALL_NAME_FILTER());
         }
 
         private void processFunctionLiteralArguments() {

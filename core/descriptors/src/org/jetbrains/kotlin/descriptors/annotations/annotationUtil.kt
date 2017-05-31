@@ -84,9 +84,9 @@ private fun CallableMemberDescriptor.isReifiable() = typeParameters.any { it.isR
 
 private fun CallableMemberDescriptor.hasInlineOnlyAnnotation() = annotations.hasAnnotation(INLINE_ONLY_ANNOTATION_FQ_NAME)
 
-private val IMPLICIT_TYPE_CLASS_DICTIONARY = FqName("kotlin.internal.ImplicitTypeClassDictionary")
+private val IMPLICIT_TYPE_CLASS_DICTIONARY = FqName("kotlin.internal.TypeClassDictionary")
 
-fun KotlinBuiltIns.createImplicitTypeClassDictionaryAnnotation(): AnnotationDescriptor {
+fun KotlinBuiltIns.createTypeClassDictionaryAnnotation(): AnnotationDescriptor {
     val annotationDescriptor = getBuiltInClassByFqName(IMPLICIT_TYPE_CLASS_DICTIONARY)
     return AnnotationDescriptorImpl(
             annotationDescriptor.defaultType,

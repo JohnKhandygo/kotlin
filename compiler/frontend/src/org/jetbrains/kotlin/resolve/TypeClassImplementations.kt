@@ -19,6 +19,7 @@ package org.jetbrains.kotlin.resolve
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.TypeParameterDescriptor
 import org.jetbrains.kotlin.descriptors.annotations.Annotations
+import org.jetbrains.kotlin.diagnostics.Diagnostic
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.resolve.scopes.MemberScope
@@ -31,17 +32,18 @@ import org.jetbrains.kotlin.types.typeUtil.replaceAnnotations
 class TypeClassImplementations private constructor(
         private val trace: BindingTrace,
         private val typeClassDescriptor: ClassDescriptor,
+        private val expressionFactory: KtPsiFactory,
         private val implementations: MutableMap<List<KotlinType>, ClassDescriptor> = mutableMapOf()
 ) {
 
     //EK: TODO check nullability below!
-    private val expressionFactory: KtPsiFactory = KtPsiFactory(DescriptorToSourceUtils.descriptorToDeclaration(typeClassDescriptor)!!)
+    //private val expressionFactory: KtPsiFactory = KtPsiFactory(DescriptorToSourceUtils.descriptorToDeclaration(typeClassDescriptor)!!)
 
     private val typeParameters: List<TypeParameterDescriptor> = typeClassDescriptor.typeConstructor.parameters
 
     fun addMapping(member: List<KotlinType>, implementationDescriptor: ClassDescriptor): Boolean {
         if (implementations.containsKey(member)) {
-            return false
+            return implementationDescriptor == implementations[member];
         }
         implementations.put(member, implementationDescriptor)
         return true
@@ -189,12 +191,13 @@ class TypeClassImplementations private constructor(
     companion object {
         fun forDescriptor(
                 trace: BindingTrace,
-                classDescriptor: ClassDescriptor
+                classDescriptor: ClassDescriptor,
+                factory: KtPsiFactory
         ): TypeClassImplementations {
             if (!DescriptorUtils.isTypeClass(classDescriptor)) {
                 throw RuntimeException("Cannot create for class descriptor")
             }
-            return TypeClassImplementations(trace, classDescriptor)
+            return TypeClassImplementations(trace, classDescriptor, factory)
         }
     }
 }

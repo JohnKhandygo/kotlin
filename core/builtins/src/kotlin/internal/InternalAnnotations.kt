@@ -39,4 +39,4 @@ internal annotation class PlatformDependent
  */
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.BINARY)
-internal annotation class ImplicitTypeClassDictionary
+internal annotation class TypeClassDictionary
