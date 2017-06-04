@@ -127,7 +127,7 @@ fun <T: KotlinType> filterSuperTypesAndOrder(
                                          "supertype: ${supertypeConstructor.debugInfo()} \n")
                 }
 
-                if (supertype.isMarkedNullable != shouldBeMarkedAsNullable) {
+                if (shouldBeMarkedAsNullable && supertype.isMarkedNullable != shouldBeMarkedAsNullable) {
                     continue
                 }
                 val resultType = supertype
@@ -183,9 +183,9 @@ fun <T: KotlinType> filterSubTypesAndOrder(
                 currentPathNode = currentPathNode.previous
             }
             //EK: TODO investigate nullability on this
-            if (initialSubtype.isMarkedNullable != shouldBeMarkedAsNullable) {
+            /*if (initialSubtype.isMarkedNullable != shouldBeMarkedAsNullable) {
                 continue
-            }
+            }*/
             val resultType = initialSubtype as T
             if (lastPathNode.level > lastResultLevel) {
                 typesHierarchy.add(mutableSetOf(resultType))
@@ -209,10 +209,10 @@ fun <T: KotlinType> filterEqualTypes(
         toChooseFrom: Set<T>
 ) : Set<T> {
     val equalTypes = mutableSetOf<T>()
-    val constructor = type.constructor
+    //val constructor = type.constructor
     for (typeToConsider in toChooseFrom) {
-        val supertypeConstructor = typeToConsider.constructor
-        if (constructor == supertypeConstructor && typeToConsider.isMarkedNullable == type.isMarkedNullable) {
+        //val supertypeConstructor = typeToConsider.constructor
+        if (KotlinTypeChecker.DEFAULT.equalTypes(type, typeToConsider)) {
             equalTypes.add(typeToConsider)
         }
     }

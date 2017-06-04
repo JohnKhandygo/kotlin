@@ -196,8 +196,10 @@ class LazyTopDownAnalyzer(
 
         resolveAllHeadersInClasses(c)
 
-        registerAllTypeClassMembers(c)
-
+        if (c.allClasses.isNotEmpty()) {
+            //EK: TODO fix ugly psi factory creation
+            registerAllTypeClassMembers(c, KtPsiFactory(declarations.first()))
+        }
         declarationResolver.checkRedeclarationsInPackages(topLevelDescriptorProvider, topLevelFqNames)
         declarationResolver.checkRedeclarations(c)
 
@@ -218,12 +220,11 @@ class LazyTopDownAnalyzer(
         return c
     }
 
-    private fun registerAllTypeClassMembers(c: TopDownAnalysisContext) {
+    private fun registerAllTypeClassMembers(c: TopDownAnalysisContext, factory: KtPsiFactory) {
         for (classDescriptor in c.allClasses) {
             for (superType in classDescriptor.typeConstructor.supertypes) {
                 if (TypeUtils.isTypeClass(superType)) {
-                    BindingContextUtils.recordTypeClassImplementation(trace, superType, classDescriptor,
-                                                                      KtPsiFactory(DescriptorToSourceUtils.descriptorToDeclaration(superType.constructor.declarationDescriptor!!)!!))
+                    BindingContextUtils.recordTypeClassImplementation(trace, superType, classDescriptor, factory)
                 }
             }
         }

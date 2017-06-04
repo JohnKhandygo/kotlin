@@ -17,6 +17,7 @@
 package org.jetbrains.kotlin.resolve.calls.model;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.SmartList;
 import org.jetbrains.annotations.NotNull;
@@ -42,6 +43,7 @@ import org.jetbrains.kotlin.resolve.scopes.HierarchicalScope;
 import org.jetbrains.kotlin.resolve.scopes.LexicalScope;
 import org.jetbrains.kotlin.resolve.scopes.receivers.ReceiverValue;
 import org.jetbrains.kotlin.types.*;
+import org.jetbrains.kotlin.types.checker.KotlinTypeChecker;
 
 import java.util.*;
 
@@ -236,13 +238,21 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
                 KtExpression outerIfAny = findVariableExpressionWithTypeFromOuter(substitutedVersion.getType());
                 ValueArgument newValueArgument;
                 if (outerIfAny == null) {
-                    newValueArgument = getTypeClassImplementationAsArgument(substitutedVersion, typeDeclaration);
+                    try {
+                        newValueArgument = getTypeClassImplementationAsArgument(substitutedVersion, typeDeclaration);
+                    } catch (Exception any) {
+                        newValueArgument = null;
+                    }
                 } else {
                     newValueArgument = CallMaker.makeValueArgument(outerIfAny);
                 }
-                argumentToParameterMap.remove(oldValueArgument);
-                argumentToParameterMap.put(newValueArgument, new ArgumentMatchImpl(entry.getKey()));
-                valueArguments.put(substitutedVersion, new ExpressionValueArgument(newValueArgument));
+                if (newValueArgument != null) {
+                    argumentToParameterMap.remove(oldValueArgument);
+                    argumentToParameterMap.put(newValueArgument, new ArgumentMatchImpl(entry.getKey()));
+                    valueArguments.put(substitutedVersion, new ExpressionValueArgument(newValueArgument));
+                } else {
+                    valueArguments.put(substitutedVersion, entry.getValue());
+                }
             }
             else {
                 valueArguments.put(substitutedVersion, entry.getValue());
@@ -264,14 +274,18 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
 
     @Nullable
     private KtExpression findVariableExpressionWithTypeFromOuter(KotlinType givenType) {
-        Collection<ValueParameterDescriptor> valueParameters = getValueParameterDescriptorsFromOuter();
+        Queue<Collection<ValueParameterDescriptor>> allValueParameters = getValueParameterDescriptorsFromOuter();
         //EK: TODO handle multiple solutions
-        for (ValueParameterDescriptor valueParameter : valueParameters) {
-            if (DescriptorUtils.isTypeClassDictionary(valueParameter)) {
-                KotlinType contributedVariableType = valueParameter.getType();
-                if (contributedVariableType.getConstructor() == givenType.getConstructor()) {
-                    return new KtPsiFactory(call.getCallElement().getProject())
-                            .createExpression(valueParameter.getName().getIdentifier());
+        while (!allValueParameters.isEmpty()) {
+            Collection<ValueParameterDescriptor> valueParameters = allValueParameters.poll();
+            for (ValueParameterDescriptor valueParameter : valueParameters) {
+                if (DescriptorUtils.isTypeClassDictionary(valueParameter)) {
+                    KotlinType contributedVariableType = valueParameter.getType();
+                    if (KotlinTypeChecker.DEFAULT.equalTypes(givenType, contributedVariableType)) {
+                        //if (contributedVariableType.getConstructor() == givenType.getConstructor()) {
+                        return new KtPsiFactory(call.getCallElement().getProject())
+                                .createExpression(valueParameter.getName().getIdentifier());
+                    }
                 }
             }
         }
@@ -279,7 +293,8 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
     }
 
     @NotNull
-    private Collection<ValueParameterDescriptor> getValueParameterDescriptorsFromOuter() {
+    private Queue<Collection<ValueParameterDescriptor>> getValueParameterDescriptorsFromOuter() {
+        Queue<Collection<ValueParameterDescriptor>> sortedValueParameters = Queues.newArrayDeque();
         HierarchicalScope calleeScope = trace.get(BindingContext.LEXICAL_SCOPE, call.getCalleeExpression());
         while (calleeScope != null) {
             DeclarationDescriptor calleeScopeOwner = ((LexicalScope) calleeScope).getOwnerDescriptor();
@@ -287,13 +302,14 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
                 calleeScope = calleeScope.getParent();
                 continue ;
             }
-            if (calleeScopeOwner instanceof CallableDescriptor) {
-                return ((CallableDescriptor) calleeScopeOwner).getValueParameters();
+            if (calleeScopeOwner instanceof FunctionDescriptor) {
+                List<ValueParameterDescriptor> currentLevelParameters = ((FunctionDescriptor) calleeScopeOwner).getValueParameters();
+                sortedValueParameters.add(currentLevelParameters);
             } else {
                 break ;
             }
         }
-        return Collections.emptyList();
+        return sortedValueParameters;
     }
 
     @NotNull

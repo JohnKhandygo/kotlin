@@ -37,6 +37,7 @@ import org.jetbrains.kotlin.resolve.calls.callUtil.isExplicitSafeCall
 import org.jetbrains.kotlin.resolve.calls.callUtil.isSafeCall
 import org.jetbrains.kotlin.resolve.calls.context.*
 import org.jetbrains.kotlin.resolve.calls.inference.SubstitutionFilteringInternalResolveAnnotations
+import org.jetbrains.kotlin.resolve.calls.model.ArgumentMatch
 import org.jetbrains.kotlin.resolve.calls.model.ArgumentMatchStatus
 import org.jetbrains.kotlin.resolve.calls.model.MutableResolvedCall
 import org.jetbrains.kotlin.resolve.calls.results.ResolutionStatus
@@ -374,7 +375,15 @@ class CandidateResolver(
                     matchStatus = ArgumentMatchStatus.ARGUMENT_HAS_NO_TYPE
                 }
                 else if (!noExpectedType(expectedType)) {
-                    if (!ArgumentTypeResolver.isSubtypeOfForArgumentType(type, expectedType)) {
+                    val argumentMapping = candidateCall.getArgumentMapping(argument)
+                    if (argumentMapping is ArgumentMatch) {
+                        val thisArgMatchStatus = argumentMapping.status
+                        if (thisArgMatchStatus == ArgumentMatchStatus.IMPLICIT_UNINFERRED_ARGUMENT) {
+                            resultStatus = OTHER_ERROR
+                            matchStatus = ArgumentMatchStatus.IMPLICIT_UNINFERRED_ARGUMENT
+                        }
+                    }
+                    else if (!ArgumentTypeResolver.isSubtypeOfForArgumentType(type, expectedType)) {
                         val smartCast = smartCastValueArgumentTypeIfPossible(expression, newContext.expectedType, type, newContext)
                         if (smartCast == null) {
                             resultStatus = OTHER_ERROR
