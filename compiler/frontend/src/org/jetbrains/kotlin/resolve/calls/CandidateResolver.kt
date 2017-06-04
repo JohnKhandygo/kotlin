@@ -375,10 +375,9 @@ class CandidateResolver(
                     matchStatus = ArgumentMatchStatus.ARGUMENT_HAS_NO_TYPE
                 }
                 else if (!noExpectedType(expectedType)) {
-                    val argumentMapping = candidateCall.getArgumentMapping(argument)
-                    if (argumentMapping is ArgumentMatch) {
-                        val thisArgMatchStatus = argumentMapping.status
-                        if (thisArgMatchStatus == ArgumentMatchStatus.IMPLICIT_UNINFERRED_ARGUMENT) {
+                    if (TypeUtils.isTypeClass(expectedType)) {
+                        val argumentMapping = candidateCall.getArgumentMapping(argument)
+                        if (argumentMapping is ArgumentMatch && argumentMapping.status == ArgumentMatchStatus.IMPLICIT_UNINFERRED_ARGUMENT) {
                             resultStatus = OTHER_ERROR
                             matchStatus = ArgumentMatchStatus.IMPLICIT_UNINFERRED_ARGUMENT
                         }

@@ -297,6 +297,9 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
         Queue<Collection<ValueParameterDescriptor>> sortedValueParameters = Queues.newArrayDeque();
         HierarchicalScope calleeScope = trace.get(BindingContext.LEXICAL_SCOPE, call.getCalleeExpression());
         while (calleeScope != null) {
+            if (!(calleeScope instanceof LexicalScope)) {
+                break ;
+            }
             DeclarationDescriptor calleeScopeOwner = ((LexicalScope) calleeScope).getOwnerDescriptor();
             if (calleeScopeOwner instanceof AnonymousFunctionDescriptor) {
                 calleeScope = calleeScope.getParent();
@@ -305,6 +308,7 @@ public class ResolvedCallImpl<D extends CallableDescriptor> implements MutableRe
             if (calleeScopeOwner instanceof FunctionDescriptor) {
                 List<ValueParameterDescriptor> currentLevelParameters = ((FunctionDescriptor) calleeScopeOwner).getValueParameters();
                 sortedValueParameters.add(currentLevelParameters);
+                calleeScope = calleeScope.getParent();
             } else {
                 break ;
             }
