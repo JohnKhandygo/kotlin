@@ -293,50 +293,30 @@ public class ResolvedCallsTestGenerated extends AbstractResolvedCallsTest {
                     String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/computation/03_oneContravariantParameter.kt");
                     doTest(fileName);
                 }
-            }
 
-            @TestMetadata("oneParameterResolvedImplicitly.kt")
-            public void testOneParameterResolvedImplicitly() throws Exception {
-                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/oneParameterResolvedImplicitly.kt");
-                doTest(fileName);
-            }
+                @TestMetadata("04_manyInvariantParameters.kt")
+                public void testManyInvariantParameters() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/computation/04_manyInvariantParameters.kt");
+                    doTest(fileName);
+                }
 
-            @TestMetadata("manyParametersResolvedImplicitly.kt")
-            public void testManyParametersResolvedImplicitly() throws Exception {
-                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/manyParametersResolvedImplicitly.kt");
-                doTest(fileName);
-            }
+                @TestMetadata("05_manyCovariantParameters.kt")
+                public void testManyCovariantParameters() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/computation/05_manyCovariantParameters.kt");
+                    doTest(fileName);
+                }
 
-            @TestMetadata("oneParameterResolvedExplicitly.kt")
-            public void testOneParameterResolvedExplicitly() throws Exception {
-                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/oneParameterResolvedExplicitly.kt");
-                doTest(fileName);
-            }
+                @TestMetadata("06_manyContravariantParameters.kt")
+                public void testManyContravariantParameters() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/computation/06_manyContravariantParameters.kt");
+                    doTest(fileName);
+                }
 
-
-
-            @TestMetadata("manyCovariantParameters.kt")
-            public void testManyCovariantParameters() throws Exception {
-                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/manyCovariantParameters.kt");
-                doTest(fileName);
-            }
-
-            @TestMetadata("manyContrvariantParameters.kt")
-            public void testManyContrvariantParameters() throws Exception {
-                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/manyContrvariantParameters.kt");
-                doTest(fileName);
-            }
-
-            @TestMetadata("allVarianceParameters.kt")
-            public void testAllVarianceParameters() throws Exception {
-                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/allVarianceParameters.kt");
-                doTest(fileName);
-            }
-
-            @TestMetadata("dictionaryParameterPassesImplicitly.kt")
-            public void testDictionaryParameterPassesImplicitly() throws Exception {
-                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/dictionaryParameterPassesImplicitly.kt");
-                doTest(fileName);
+                @TestMetadata("07_allVarianceParameters.kt")
+                public void testAllVarianceParametersParameters() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/computation/07_allVarianceParameters.kt");
+                    doTest(fileName);
+                }
             }
 
             @TestMetadata("dictionaryParameterPassesFromOuter.kt")

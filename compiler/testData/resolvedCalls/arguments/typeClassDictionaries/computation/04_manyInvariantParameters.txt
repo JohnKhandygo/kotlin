@@ -1,0 +1,143 @@
+package test
+
+interface A1
+interface A2: A1
+interface A3: A2
+interface A4: A3
+interface A5: A4
+
+open class B1
+open class B2: B1()
+open class B3: B2(), A3
+open class B4: B3()
+class B5: B4()
+
+@TypeClass
+interface C<T1, T2, T3>
+
+object AMember : C<A1, A3, A5>
+object BMember : C<B2, B3, B4?>
+object CMember : C<B5, A2?, B3>
+
+fun <T1, T2, T3, @TypeClass D: C<T1, T2, T3>> test(t1: T1, t2: T2, t3: T3) {}
+
+fun test1(b1: B1, b5: B5, a2: A2)  = <caret>test<B1, B5, A2> (b1, b5, a2) //nothing found
+fun test2(a1: A1?, a3: A3, a5: A5) = <caret>test<A1?, A3, A5>(a1, a3, a5) //nothing found
+fun test3(b2: B2, b3: B3, b4: B4?) = <caret>test(b2, b3, b4) //found BMember
+fun test4(b5: B5, a3: A3, b5: B5) = <caret>test<B5, A2?, B3>(b5, a3, b5) //found CMember
+fun test4(b3: B3, a2: A2, a1: A1) = <caret>test(b3, a2, a1) //nothing found
+
+
+Resolved call:
+
+Candidate descriptor: fun <T1, T2, T3> test(_dictionary_0: C<T1, T2, T3>, t1: T1, t2: T2, t3: T3): Unit defined in test
+Resulting descriptor: fun <T1, T2, T3> test(_dictionary_0: C<B1, B5, A2>, t1: B1, t2: B5, t3: A2): Unit defined in test
+
+Explicit receiver kind = NO_EXPLICIT_RECEIVER
+Dispatch receiver = NO_RECEIVER
+Extension receiver = NO_RECEIVER
+
+Value arguments mapping:
+
+SUCCESS  t1 : B1 = b1
+SUCCESS  t2 : B5 = b5
+SUCCESS  t3 : A2 = a2
+
+Resolved value arguments mapping:
+
+IMPLICIT_UNINFERRED_ARGUMENT  _dictionary_0 : C<B1, B5, A2> = null
+SUCCESS  t1 : B1 = b1
+SUCCESS  t2 : B5 = b5
+SUCCESS  t3 : A2 = a2
+
+
+Resolved call:
+
+Candidate descriptor: fun <T1, T2, T3> test(_dictionary_0: C<T1, T2, T3>, t1: T1, t2: T2, t3: T3): Unit defined in test
+Resulting descriptor: fun <T1, T2, T3> test(_dictionary_0: C<A1?, A3, A5>, t1: A1?, t2: A3, t3: A5): Unit defined in test
+
+Explicit receiver kind = NO_EXPLICIT_RECEIVER
+Dispatch receiver = NO_RECEIVER
+Extension receiver = NO_RECEIVER
+
+Value arguments mapping:
+
+SUCCESS  t1 : A1? = a1
+SUCCESS  t2 : A3 = a3
+SUCCESS  t3 : A5 = a5
+
+Resolved value arguments mapping:
+
+IMPLICIT_UNINFERRED_ARGUMENT  _dictionary_0 : C<A1?, A3, A5> = null
+SUCCESS  t1 : A1? = a1
+SUCCESS  t2 : A3 = a3
+SUCCESS  t3 : A5 = a5
+
+
+Resolved call:
+
+Candidate descriptor: fun <T1, T2, T3> test(_dictionary_0: C<T1, T2, T3>, t1: T1, t2: T2, t3: T3): Unit defined in test
+Resulting descriptor: fun <T1, T2, T3> test(_dictionary_0: C<B2, B3, B4?>, t1: B2, t2: B3, t3: B4?): Unit defined in test
+
+Explicit receiver kind = NO_EXPLICIT_RECEIVER
+Dispatch receiver = NO_RECEIVER
+Extension receiver = NO_RECEIVER
+
+Value arguments mapping:
+
+SUCCESS  t1 : B2 = b2
+SUCCESS  t2 : B3 = b3
+SUCCESS  t3 : B4? = b4
+
+Resolved value arguments mapping:
+
+SUCCESS  _dictionary_0 : C<B2, B3, B4?> = test.BMember
+SUCCESS  t1 : B2 = b2
+SUCCESS  t2 : B3 = b3
+SUCCESS  t3 : B4? = b4
+
+
+Resolved call:
+
+Candidate descriptor: fun <T1, T2, T3> test(_dictionary_0: C<T1, T2, T3>, t1: T1, t2: T2, t3: T3): Unit defined in test
+Resulting descriptor: fun <T1, T2, T3> test(_dictionary_0: C<B5, A2?, B3>, t1: B5, t2: A2?, t3: B3): Unit defined in test
+
+Explicit receiver kind = NO_EXPLICIT_RECEIVER
+Dispatch receiver = NO_RECEIVER
+Extension receiver = NO_RECEIVER
+
+Value arguments mapping:
+
+SUCCESS  t1 : B5 = b5
+SUCCESS  t2 : A2? = a3
+SUCCESS  t3 : B3 = b5
+
+Resolved value arguments mapping:
+
+SUCCESS  _dictionary_0 : C<B5, A2?, B3> = test.CMember
+SUCCESS  t1 : B5 = b5
+SUCCESS  t2 : A2? = a3
+SUCCESS  t3 : B3 = b5
+
+
+Resolved call:
+
+Candidate descriptor: fun <T1, T2, T3> test(_dictionary_0: C<T1, T2, T3>, t1: T1, t2: T2, t3: T3): Unit defined in test
+Resulting descriptor: fun <T1, T2, T3> test(_dictionary_0: C<B3, A2, A1>, t1: B3, t2: A2, t3: A1): Unit defined in test
+
+Explicit receiver kind = NO_EXPLICIT_RECEIVER
+Dispatch receiver = NO_RECEIVER
+Extension receiver = NO_RECEIVER
+
+Value arguments mapping:
+
+SUCCESS  t1 : B3 = b3
+SUCCESS  t2 : A2 = a2
+SUCCESS  t3 : A1 = a1
+
+Resolved value arguments mapping:
+
+IMPLICIT_UNINFERRED_ARGUMENT  _dictionary_0 : C<B3, A2, A1> = null
+SUCCESS  t1 : B3 = b3
+SUCCESS  t2 : A2 = a2
+SUCCESS  t3 : A1 = a1
