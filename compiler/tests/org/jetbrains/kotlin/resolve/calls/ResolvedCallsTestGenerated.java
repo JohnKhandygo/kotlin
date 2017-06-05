@@ -352,16 +352,37 @@ public class ResolvedCallsTestGenerated extends AbstractResolvedCallsTest {
                 }
             }
 
-            @TestMetadata("companionObjectForTypeClassGenrated.kt")
-            public void testCompanionObjectForTypeClassGenrated() throws Exception {
-                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/companionObjectForTypeClassGenrated.kt");
-                doTest(fileName);
-            }
+            @TestMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/companion")
+            @TestDataPath("$PROJECT_ROOT")
+            @RunWith(JUnit3RunnerWithInners.class)
+            public static class Companion extends AbstractResolvedCallsTest {
+                public void testAllFilesPresentInTypeClassDictionaries() throws Exception {
+                    KotlinTestUtils.assertAllTestsPresentByMetadata(this.getClass(), new File("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/companion"), Pattern.compile("^(.+)\\.kt$"), TargetBackend.ANY, true);
+                }
 
-            @TestMetadata("typeClassSpecificMethodsGeneratedForDeclaredCompanion.kt")
-            public void testTypeClassSpecificMethodsGeneratedForDeclaredCompanion() throws Exception {
-                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/typeClassSpecificMethodsGeneratedForDeclaredCompanion.kt");
-                doTest(fileName);
+                @TestMetadata("01_invariantParameters.kt")
+                public void testInvariantParameters() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/companion/01_invariantParameters.kt");
+                    doTest(fileName);
+                }
+
+                @TestMetadata("02_covariantParameters.kt")
+                public void testCovariantParameters() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/companion/02_covariantParameters.kt");
+                    doTest(fileName);
+                }
+
+                @TestMetadata("03_contravariantParameters.kt")
+                public void testContravariantParameters() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/companion/03_contravariantParameters.kt");
+                    doTest(fileName);
+                }
+
+                @TestMetadata("04_differentParameters.kt")
+                public void testDifferentParameters() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/companion/04_differentParameters.kt");
+                    doTest(fileName);
+                }
             }
         }
     }
