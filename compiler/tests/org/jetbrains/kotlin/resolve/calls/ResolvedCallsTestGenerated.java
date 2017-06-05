@@ -268,6 +268,33 @@ public class ResolvedCallsTestGenerated extends AbstractResolvedCallsTest {
                 KotlinTestUtils.assertAllTestsPresentByMetadata(this.getClass(), new File("compiler/testData/resolvedCalls/arguments/typeClassDictionaries"), Pattern.compile("^(.+)\\.kt$"), TargetBackend.ANY, true);
             }
 
+            @TestMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/computation")
+            @TestDataPath("$PROJECT_ROOT")
+            @RunWith(JUnit3RunnerWithInners.class)
+            public static class Computation extends AbstractResolvedCallsTest {
+                public void testAllFilesPresentInTypeClassDictionaries() throws Exception {
+                    KotlinTestUtils.assertAllTestsPresentByMetadata(this.getClass(), new File("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/computation"), Pattern.compile("^(.+)\\.kt$"), TargetBackend.ANY, true);
+                }
+
+                @TestMetadata("01_oneInvariantParameter.kt")
+                public void testOneInvariantParameter() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/computation/01_oneInvariantParameter.kt");
+                    doTest(fileName);
+                }
+
+                @TestMetadata("02_oneCovariantParameter.kt")
+                public void testOneCovariantParameter() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/computation/02_oneCovariantParameter.kt");
+                    doTest(fileName);
+                }
+
+                @TestMetadata("03_oneContravariantParameter.kt")
+                public void testOneContravariantParameter() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/computation/03_oneContravariantParameter.kt");
+                    doTest(fileName);
+                }
+            }
+
             @TestMetadata("oneParameterResolvedImplicitly.kt")
             public void testOneParameterResolvedImplicitly() throws Exception {
                 String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/oneParameterResolvedImplicitly.kt");
@@ -286,21 +313,11 @@ public class ResolvedCallsTestGenerated extends AbstractResolvedCallsTest {
                 doTest(fileName);
             }
 
-            @TestMetadata("oneCovariantParameter.kt")
-            public void testOneCovariantParameter() throws Exception {
-                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/oneCovariantParameter.kt");
-                doTest(fileName);
-            }
+
 
             @TestMetadata("manyCovariantParameters.kt")
             public void testManyCovariantParameters() throws Exception {
                 String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/manyCovariantParameters.kt");
-                doTest(fileName);
-            }
-
-            @TestMetadata("oneContrvariantParameter.kt")
-            public void testOneContrvariantParameter() throws Exception {
-                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/oneContrvariantParameter.kt");
                 doTest(fileName);
             }
 
