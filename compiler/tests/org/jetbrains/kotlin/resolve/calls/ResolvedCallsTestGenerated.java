@@ -319,10 +319,37 @@ public class ResolvedCallsTestGenerated extends AbstractResolvedCallsTest {
                 }
             }
 
-            @TestMetadata("dictionaryParameterPassesFromOuter.kt")
-            public void testDictionaryParameterPassesFromOuter() throws Exception {
-                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/dictionaryParameterPassesFromOuter.kt");
-                doTest(fileName);
+            @TestMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/search")
+            @TestDataPath("$PROJECT_ROOT")
+            @RunWith(JUnit3RunnerWithInners.class)
+            public static class Search extends AbstractResolvedCallsTest {
+                public void testAllFilesPresentInTypeClassDictionaries() throws Exception {
+                    KotlinTestUtils.assertAllTestsPresentByMetadata(this.getClass(), new File("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/search"), Pattern.compile("^(.+)\\.kt$"), TargetBackend.ANY, true);
+                }
+
+                @TestMetadata("01_singleExpressionBody.kt")
+                public void testSingleExpressionBody() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/search/01_singleExpressionBody.kt");
+                    doTest(fileName);
+                }
+
+                @TestMetadata("02_bodyExpression.kt")
+                public void testBodyExpression() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/search/02_bodyExpression.kt");
+                    doTest(fileName);
+                }
+
+                @TestMetadata("03_anonymousFunctions.kt")
+                public void testAnonymousFunctions() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/search/03_anonymousFunctions.kt");
+                    doTest(fileName);
+                }
+
+                @TestMetadata("04_nestedFunctions.kt")
+                public void testNestedFunctions() throws Exception {
+                    String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/resolvedCalls/arguments/typeClassDictionaries/search/04_nestedFunctions.kt");
+                    doTest(fileName);
+                }
             }
 
             @TestMetadata("companionObjectForTypeClassGenrated.kt")

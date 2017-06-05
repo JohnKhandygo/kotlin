@@ -1,0 +1,175 @@
+package test
+
+@TypeClass
+interface C<T>
+
+fun <T, @TypeClass D: C<T>>     invariant() {}
+fun <T, @TypeClass D: C<out T>> covariant() {}
+fun <T, @TypeClass D: C<in T>>  contravariant() {}
+
+fun <T> withAnonymous(lambda: (Unit) -> Unit) {}
+
+fun <T, @TypeClass D1: C<T>,
+        @TypeClass D2: C<out T>,
+        @TypeClass D3: C<in T>> test1() {
+    fun nested() {
+        fun moreNested() {
+            <caret>invariant<T>()
+            <caret>covariant<T>()
+            <caret>contravariant<T>()
+        }
+    }
+}
+
+fun <T, @TypeClass D: C<T>> test2() {
+    fun nested() {
+        fun moreNested() {
+            <caret>covariant<T>()
+            <caret>contravariant<T>()
+        }
+    }
+}
+
+fun <T, @TypeClass D: C<out T>> test3() {
+    fun nested() {
+        fun moreNested() {
+            <caret>invariant<T>()
+            <caret>contravariant<T>()
+        }
+    }
+}
+
+fun <T, @TypeClass D: C<in T>> test4() {
+    fun nested() {
+        fun moreNested() {
+            <caret>invariant<T>()
+            <caret>covariant<T>()
+        }
+    }
+}
+
+
+Resolved call:
+
+Candidate descriptor: fun <T> invariant(_dictionary_0: C<T>): Unit defined in test
+Resulting descriptor: fun <T> invariant(_dictionary_0: C<T>): Unit defined in test
+
+Explicit receiver kind = NO_EXPLICIT_RECEIVER
+Dispatch receiver = NO_RECEIVER
+Extension receiver = NO_RECEIVER
+
+Resolved value arguments mapping:
+
+SUCCESS  _dictionary_0 : C<T> = _dictionary_0
+
+
+Resolved call:
+
+Candidate descriptor: fun <T> covariant(_dictionary_0: C<out T>): Unit defined in test
+Resulting descriptor: fun <T> covariant(_dictionary_0: C<out T>): Unit defined in test
+
+Explicit receiver kind = NO_EXPLICIT_RECEIVER
+Dispatch receiver = NO_RECEIVER
+Extension receiver = NO_RECEIVER
+
+Resolved value arguments mapping:
+
+SUCCESS  _dictionary_0 : C<out T> = _dictionary_1
+
+
+Resolved call:
+
+Candidate descriptor: fun <T> contravariant(_dictionary_0: C<in T>): Unit defined in test
+Resulting descriptor: fun <T> contravariant(_dictionary_0: C<in T>): Unit defined in test
+
+Explicit receiver kind = NO_EXPLICIT_RECEIVER
+Dispatch receiver = NO_RECEIVER
+Extension receiver = NO_RECEIVER
+
+Resolved value arguments mapping:
+
+SUCCESS  _dictionary_0 : C<in T> = _dictionary_2
+
+
+Resolved call:
+
+Candidate descriptor: fun <T> covariant(_dictionary_0: C<out T>): Unit defined in test
+Resulting descriptor: fun <T> covariant(_dictionary_0: C<out T>): Unit defined in test
+
+Explicit receiver kind = NO_EXPLICIT_RECEIVER
+Dispatch receiver = NO_RECEIVER
+Extension receiver = NO_RECEIVER
+
+Resolved value arguments mapping:
+
+IMPLICIT_UNINFERRED_ARGUMENT  _dictionary_0 : C<out T> = null
+
+
+Resolved call:
+
+Candidate descriptor: fun <T> contravariant(_dictionary_0: C<in T>): Unit defined in test
+Resulting descriptor: fun <T> contravariant(_dictionary_0: C<in T>): Unit defined in test
+
+Explicit receiver kind = NO_EXPLICIT_RECEIVER
+Dispatch receiver = NO_RECEIVER
+Extension receiver = NO_RECEIVER
+
+Resolved value arguments mapping:
+
+IMPLICIT_UNINFERRED_ARGUMENT  _dictionary_0 : C<in T> = null
+
+
+Resolved call:
+
+Candidate descriptor: fun <T> invariant(_dictionary_0: C<T>): Unit defined in test
+Resulting descriptor: fun <T> invariant(_dictionary_0: C<T>): Unit defined in test
+
+Explicit receiver kind = NO_EXPLICIT_RECEIVER
+Dispatch receiver = NO_RECEIVER
+Extension receiver = NO_RECEIVER
+
+Resolved value arguments mapping:
+
+IMPLICIT_UNINFERRED_ARGUMENT  _dictionary_0 : C<T> = null
+
+
+Resolved call:
+
+Candidate descriptor: fun <T> contravariant(_dictionary_0: C<in T>): Unit defined in test
+Resulting descriptor: fun <T> contravariant(_dictionary_0: C<in T>): Unit defined in test
+
+Explicit receiver kind = NO_EXPLICIT_RECEIVER
+Dispatch receiver = NO_RECEIVER
+Extension receiver = NO_RECEIVER
+
+Resolved value arguments mapping:
+
+IMPLICIT_UNINFERRED_ARGUMENT  _dictionary_0 : C<in T> = null
+
+
+Resolved call:
+
+Candidate descriptor: fun <T> invariant(_dictionary_0: C<T>): Unit defined in test
+Resulting descriptor: fun <T> invariant(_dictionary_0: C<T>): Unit defined in test
+
+Explicit receiver kind = NO_EXPLICIT_RECEIVER
+Dispatch receiver = NO_RECEIVER
+Extension receiver = NO_RECEIVER
+
+Resolved value arguments mapping:
+
+IMPLICIT_UNINFERRED_ARGUMENT  _dictionary_0 : C<T> = null
+
+
+Resolved call:
+
+Candidate descriptor: fun <T> covariant(_dictionary_0: C<out T>): Unit defined in test
+Resulting descriptor: fun <T> covariant(_dictionary_0: C<out T>): Unit defined in test
+
+Explicit receiver kind = NO_EXPLICIT_RECEIVER
+Dispatch receiver = NO_RECEIVER
+Extension receiver = NO_RECEIVER
+
+Resolved value arguments mapping:
+
+IMPLICIT_UNINFERRED_ARGUMENT  _dictionary_0 : C<out T> = null
